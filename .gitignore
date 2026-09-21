@@ -1,0 +1,29 @@
+# Geheimnisse - NIEMALS committen
+.env
+*.key
+
+# Arbeitsordner der Agents (deine Dateien gehoeren dir, nicht ins Repo)
+workspace/*
+!workspace/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Laufzeitdaten (ab Etappe 2: Logbuch, Kostenzaehler)
+data/
+*.sqlite3
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
