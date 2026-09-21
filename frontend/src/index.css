@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* Dunkelmodus ueber eine Klasse am <html>, nicht nur ueber die
+   Systemeinstellung - sonst koennte der Nutzer ihn nicht umschalten. */
+@custom-variant dark (&:where(.dunkel, .dunkel *));
+
+/* Farben als Variablen: eine Stelle zum Aendern, und der Dunkelmodus ist
+   nur ein anderer Satz Werte - nicht ein zweites Stylesheet. */
+@theme {
+  --color-flaeche: #ffffff;
+  --color-flaeche-2: #f6f7f9;
+  --color-rand: #e3e6ea;
+  --color-text: #171a1f;
+  --color-text-leise: #626873;
+  --color-akzent: #2563eb;
+  --color-akzent-leise: #dbeafe;
+}
+
+:root {
+  color-scheme: light;
+}
+
+.dunkel {
+  color-scheme: dark;
+  --color-flaeche: #14171c;
+  --color-flaeche-2: #1b1f26;
+  --color-rand: #2b313b;
+  --color-text: #e8eaee;
+  --color-text-leise: #9aa2b1;
+  --color-akzent: #60a5fa;
+  --color-akzent-leise: #1e293b;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-flaeche);
+  color: var(--color-text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+}
+
+/* Sichtbarer Fokusrahmen: Pflicht, wenn alles per Tastatur erreichbar
+   sein soll - man muss sehen, wo man gerade ist. */
+:focus-visible {
+  outline: 2px solid var(--color-akzent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Ruhige Bildlaufleisten */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rand) transparent;
+}

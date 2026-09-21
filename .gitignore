@@ -2,9 +2,15 @@
 .env
 *.key
 
-# Arbeitsordner der Agents (deine Dateien gehoeren dir, nicht ins Repo)
-workspace/*
-!workspace/.gitkeep
+# Arbeitsordner der Agents. Der echte Workspace liegt AUSSERHALB des
+# Projekts (Dokumente\Jarvis-Workspace). Falls jemand JARVIS_WORKSPACE_DIR
+# doch auf einen Ordner hier drin stellt, bleibt er trotzdem draussen.
+workspace/
+# Ausnahme: test-workspace/ mit Dummy-Dateien gehoert bewusst ins Repo.
+
+# Frontend
+node_modules/
+frontend/dist/
 
 # Python
 __pycache__/
