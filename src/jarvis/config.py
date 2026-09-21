@@ -156,10 +156,18 @@ class Settings(BaseSettings):
 
     @property
     def allowed_hosts(self) -> tuple[str, ...]:
-        """Erlaubte Werte im Host-Header (Schutz gegen DNS-Rebinding)."""
+        """Erlaubte Werte im Host-Header (Schutz gegen DNS-Rebinding).
+
+        Beide Ports sind dabei: im Entwicklungsbetrieb spricht der Browser
+        mit dem Vite-Server (5173), der die Anfrage an uns weiterreicht -
+        im Host-Header steht dann seine Adresse. Alle Eintraege bleiben
+        Loopback-Adressen, ein umgebogener Name wie "boese.de" faellt
+        weiterhin durch.
+        """
         eintraege: list[str] = []
         for host in ("127.0.0.1", "localhost", "[::1]"):
             eintraege.append(f"{host}:{self.port}")
+            eintraege.append(f"{host}:{self.ui_dev_port}")
             eintraege.append(host)
         return tuple(eintraege)
 

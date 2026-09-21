@@ -139,6 +139,25 @@ def test_fremder_host_header_wird_abgewiesen(settings: Settings) -> None:
     assert "Host" in antwort.json()["fehler"]
 
 
+def test_vite_entwicklungsserver_ist_erlaubt(settings: Settings) -> None:
+    """Im Entwicklungsbetrieb kommt die Anfrage ueber Port 5173 herein.
+
+    Gefunden durch einen echten Rauchtest: Unit-Tests sprachen den Server
+    direkt an, der Browser tut das nicht.
+    """
+    app = create_app(settings, token=TOKEN)
+    ueber_vite = TestClient(app, base_url="http://127.0.0.1:5173")
+    antwort = ueber_vite.get("/api/health", headers={"X-Jarvis-Token": TOKEN})
+    assert antwort.status_code == 200
+
+
+def test_andere_ports_bleiben_verboten(settings: Settings) -> None:
+    """Nur die zwei eigenen Ports, nicht irgendein Port auf 127.0.0.1."""
+    app = create_app(settings, token=TOKEN)
+    fremd = TestClient(app, base_url="http://127.0.0.1:9999")
+    assert fremd.get("/api/health", headers={"X-Jarvis-Token": TOKEN}).status_code == 403
+
+
 def test_localhost_ist_auch_erlaubt(settings: Settings) -> None:
     app = create_app(settings, token=TOKEN)
     lokal = TestClient(app, base_url="http://localhost:8765")
