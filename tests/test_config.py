@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from jarvis.config import PROJECT_ROOT, Settings, default_workspace_dir
@@ -72,7 +70,7 @@ def test_eigener_workspace_schlaegt_den_standard(monkeypatch: pytest.MonkeyPatch
 
 def test_server_darf_nur_lokal_lauschen(monkeypatch: pytest.MonkeyPatch) -> None:
     """0.0.0.0 wuerde Jarvis fuer das ganze Netzwerk oeffnen."""
-    monkeypatch.setenv("JARVIS_HOST", "0.0.0.0")
+    monkeypatch.setenv("JARVIS_HOST", "0.0.0.0")  # noqa: S104 - genau das wird abgelehnt
     with pytest.raises(ValueError, match="nicht erlaubt"):
         Settings(_env_file=None)  # type: ignore[call-arg]
 
@@ -82,7 +80,7 @@ def test_erlaubte_origins_enthalten_nur_lokale_adressen() -> None:
     assert f"http://127.0.0.1:{settings.port}" in settings.allowed_origins
     assert f"http://localhost:{settings.ui_dev_port}" in settings.allowed_origins
     for origin in settings.allowed_origins:
-        assert origin.startswith("http://127.0.0.1:") or origin.startswith("http://localhost:")
+        assert origin.startswith(("http://127.0.0.1:", "http://localhost:"))
 
 
 def test_kosten_werden_in_usd_gezaehlt_und_in_eur_angezeigt(

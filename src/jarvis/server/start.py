@@ -59,7 +59,9 @@ def starte_vite(token: str, settings: Settings) -> subprocess.Popen[bytes]:
     umgebung = os.environ.copy()
     umgebung["VITE_JARVIS_PORT"] = str(settings.port)
     umgebung["VITE_JARVIS_TOKEN"] = token
-    return subprocess.Popen(
+    # Feste Argumente, nichts davon stammt aus einer Modell- oder
+    # Nutzereingabe - deshalb ist der Unterprozess hier unbedenklich.
+    return subprocess.Popen(  # noqa: S603
         [npm_befehl(), "run", "dev", "--", "--port", str(settings.ui_dev_port), "--strictPort"],
         cwd=frontend_ordner(),
         env=umgebung,

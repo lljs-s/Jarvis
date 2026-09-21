@@ -17,9 +17,9 @@ from typing import Any, ClassVar
 class RiskLevel(IntEnum):
     """Wie gefaehrlich ist eine Aktion? Groesser = gefaehrlicher."""
 
-    LOW = 0     # nur lesen, nichts veraendert sich
+    LOW = 0  # nur lesen, nichts veraendert sich
     MEDIUM = 1  # neue Dateien anlegen, Netzwerk lesen
-    HIGH = 2    # ueberschreiben, loeschen, Code ausfuehren, Geld kosten
+    HIGH = 2  # ueberschreiben, loeschen, Code ausfuehren, Geld kosten
 
     @property
     def label(self) -> str:

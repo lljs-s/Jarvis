@@ -101,9 +101,13 @@ class AnthropicModel:
                 "Pruefe JARVIS_MODEL in der .env."
             ) from exc
         except anthropic.RateLimitError as exc:
-            raise ModelError("Zu viele Anfragen (Rate Limit). Warte kurz und versuch es erneut.") from exc
+            raise ModelError(
+                "Zu viele Anfragen (Rate Limit). Warte kurz und versuch es erneut."
+            ) from exc
         except anthropic.APIStatusError as exc:
-            raise ModelError(f"Die API meldet einen Fehler ({exc.status_code}): {exc.message}") from exc
+            raise ModelError(
+                f"Die API meldet einen Fehler ({exc.status_code}): {exc.message}"
+            ) from exc
         except anthropic.APIConnectionError as exc:
             raise ModelError("Keine Verbindung zur API. Ist das Internet erreichbar?") from exc
 

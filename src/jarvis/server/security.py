@@ -31,8 +31,9 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from ..config import Settings
 
-TOKEN_HEADER = "x-jarvis-token"
-TOKEN_QUERY = "token"
+# Namen, keine Geheimnisse - das Token selbst steht nie im Quelltext.
+TOKEN_HEADER = "x-jarvis-token"  # noqa: S105
+TOKEN_QUERY = "token"  # noqa: S105
 
 
 def create_session_token(settings: Settings) -> str:

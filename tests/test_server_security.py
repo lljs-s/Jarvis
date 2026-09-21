@@ -9,14 +9,15 @@ from __future__ import annotations
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from jarvis.config import Settings
 from jarvis.server import create_app
 from jarvis.server.security import Tuersteher, create_session_token, token_ist_gueltig
 
-TOKEN = "test-token-nur-fuer-tests"
+TOKEN = "test-token-nur-fuer-tests"  # noqa: S105
 EIGENE_ADRESSE = "http://127.0.0.1:8765"
-EIGENE_ORIGIN = "http://127.0.0.1:5173"       # der Vite-Entwicklungsserver
+EIGENE_ORIGIN = "http://127.0.0.1:5173"  # der Vite-Entwicklungsserver
 FREMDE_ORIGIN = "https://boese-seite.example"
 
 # Eigenheit des Testwerkzeugs: bei WebSockets traegt der Starlette-TestClient
@@ -41,6 +42,7 @@ def client(settings: Settings) -> TestClient:
 # ---------------------------------------------------------------------------
 # Token
 # ---------------------------------------------------------------------------
+
 
 def test_ohne_token_keine_antwort(client: TestClient) -> None:
     antwort = client.get("/api/health")
@@ -81,7 +83,7 @@ def test_token_vergleich_ist_zeitkonstant() -> None:
 def test_token_wird_gewuerfelt_wenn_keins_gesetzt_ist(settings: Settings) -> None:
     erstes = create_session_token(settings)
     zweites = create_session_token(settings)
-    assert erstes != zweites          # jeder Start ein neues Geheimnis
+    assert erstes != zweites  # jeder Start ein neues Geheimnis
     assert len(erstes) >= 32
 
 
@@ -95,6 +97,7 @@ def test_gesetztes_token_wird_uebernommen(monkeypatch: pytest.MonkeyPatch) -> No
 # ---------------------------------------------------------------------------
 # Origin - Schutz gegen fremde Webseiten
 # ---------------------------------------------------------------------------
+
 
 def test_fremde_origin_wird_abgewiesen(client: TestClient) -> None:
     """Selbst MIT gueltigem Token: eine fremde Seite kommt nicht durch."""
@@ -115,12 +118,12 @@ def test_eigene_origin_kommt_durch(client: TestClient) -> None:
 
 
 def test_aehnliche_origin_reicht_nicht(client: TestClient) -> None:
-    """"127.0.0.1.boese.de" faengt mit unserer Adresse an - und ist trotzdem fremd."""
+    """ "127.0.0.1.boese.de" faengt mit unserer Adresse an - und ist trotzdem fremd."""
     for fremd in (
         "http://127.0.0.1.boese-seite.example",
         "http://localhost.boese-seite.example:5173",
-        "https://127.0.0.1:5173",          # https statt http: anderer Origin
-        "http://127.0.0.1:9999",           # anderer Port
+        "https://127.0.0.1:5173",  # https statt http: anderer Origin
+        "http://127.0.0.1:9999",  # anderer Port
     ):
         antwort = client.get("/api/health", headers={"X-Jarvis-Token": TOKEN, "Origin": fremd})
         assert antwort.status_code == 403, f"{fremd} haette abgelehnt werden muessen"
@@ -129,6 +132,7 @@ def test_aehnliche_origin_reicht_nicht(client: TestClient) -> None:
 # ---------------------------------------------------------------------------
 # Host - Schutz gegen DNS-Rebinding
 # ---------------------------------------------------------------------------
+
 
 def test_fremder_host_header_wird_abgewiesen(settings: Settings) -> None:
     """DNS-Rebinding: "boese.de" zeigt auf 127.0.0.1, der Host verraet es."""
@@ -168,10 +172,13 @@ def test_localhost_ist_auch_erlaubt(settings: Settings) -> None:
 # WebSocket - Cross-Site-WebSocket-Hijacking
 # ---------------------------------------------------------------------------
 
+
 def test_websocket_ohne_token_wird_geschlossen(client: TestClient) -> None:
-    with pytest.raises(Exception):
-        with client.websocket_connect("/ws/chat", headers=WS_KOPF) as ws:
-            ws.receive_json()
+    with (
+        pytest.raises(WebSocketDisconnect),
+        client.websocket_connect("/ws/chat", headers=WS_KOPF) as ws,
+    ):
+        ws.receive_json()
 
 
 def test_websocket_mit_fremder_origin_wird_geschlossen(client: TestClient) -> None:
@@ -180,30 +187,36 @@ def test_websocket_mit_fremder_origin_wird_geschlossen(client: TestClient) -> No
     Ein WebSocket unterliegt NICHT der Same-Origin-Regel des Browsers.
     Ohne diese Pruefung koennte jede offene Webseite mitreden.
     """
-    with pytest.raises(Exception):
-        with client.websocket_connect(
+    with (
+        pytest.raises(WebSocketDisconnect),
+        client.websocket_connect(
             f"/ws/chat?token={TOKEN}", headers={**WS_KOPF, "Origin": FREMDE_ORIGIN}
-        ) as ws:
-            ws.receive_json()
+        ) as ws,
+    ):
+        ws.receive_json()
 
 
 def test_websocket_ohne_origin_wird_geschlossen(client: TestClient) -> None:
     """Ein Browser schickt immer einen Origin. Fehlt er, ist es keiner."""
-    with pytest.raises(Exception):
-        with client.websocket_connect(
+    with (
+        pytest.raises(WebSocketDisconnect),
+        client.websocket_connect(
             f"/ws/chat?token={TOKEN}", headers={"Host": "127.0.0.1:8765"}
-        ) as ws:
-            ws.receive_json()
+        ) as ws,
+    ):
+        ws.receive_json()
 
 
 def test_websocket_mit_fremdem_host_wird_geschlossen(client: TestClient) -> None:
     """DNS-Rebinding gilt auch fuer WebSockets."""
-    with pytest.raises(Exception):
-        with client.websocket_connect(
+    with (
+        pytest.raises(WebSocketDisconnect),
+        client.websocket_connect(
             f"/ws/chat?token={TOKEN}",
             headers={"Origin": EIGENE_ORIGIN, "Host": "boese-seite.example"},
-        ) as ws:
-            ws.receive_json()
+        ) as ws,
+    ):
+        ws.receive_json()
 
 
 def test_websocket_mit_token_und_eigener_origin_antwortet(client: TestClient) -> None:
@@ -220,12 +233,12 @@ def test_websocket_mit_token_und_eigener_origin_antwortet(client: TestClient) ->
             text += ereignis["text"]
 
         assert "Hallo Jarvis" in text
-        assert "Etappe 3" in text        # ehrlicher Hinweis statt erfundener Antwort
+        assert "Etappe 3" in text  # ehrlicher Hinweis statt erfundener Antwort
 
 
 def test_websocket_meldet_unverstandene_nachricht(client: TestClient) -> None:
     with client.websocket_connect(f"/ws/chat?token={TOKEN}", headers=WS_KOPF) as ws:
-        ws.send_json({"typ": "nachricht"})       # 'text' fehlt
+        ws.send_json({"typ": "nachricht"})  # 'text' fehlt
         antwort = ws.receive_json()
         assert antwort["typ"] == "fehler"
 
@@ -233,6 +246,7 @@ def test_websocket_meldet_unverstandene_nachricht(client: TestClient) -> None:
 # ---------------------------------------------------------------------------
 # Keine Geheimnisse nach draussen
 # ---------------------------------------------------------------------------
+
 
 def test_antworten_enthalten_keine_schluessel(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-streng-geheim")
@@ -260,9 +274,10 @@ def test_es_gibt_keine_oeffentliche_api_dokumentation(client: TestClient) -> Non
 # Der Tuersteher fuer sich allein
 # ---------------------------------------------------------------------------
 
+
 def test_tuersteher_kennt_nur_lokale_hosts(settings: Settings) -> None:
     tuersteher = Tuersteher.aus_settings(settings, TOKEN)
     assert tuersteher.pruefe_host("127.0.0.1:8765") is None
-    assert tuersteher.pruefe_host("LOCALHOST:8765") is None      # Gross/klein egal
+    assert tuersteher.pruefe_host("LOCALHOST:8765") is None  # Gross/klein egal
     assert tuersteher.pruefe_host("boese.example") is not None
     assert tuersteher.pruefe_host(None) is not None

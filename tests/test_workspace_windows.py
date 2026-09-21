@@ -32,13 +32,13 @@ LAUFWERKE_UND_UNC = [
     "c:\\windows\\system.ini",
     "D:\\Daten\\geheim.txt",
     "Z:/freigabe/datei.txt",
-    "C:notizen.txt",            # laufwerksrelativ: "C:datei" heisst "aktueller Ordner auf C:"
+    "C:notizen.txt",  # laufwerksrelativ: "C:datei" heisst "aktueller Ordner auf C:"
     "C:",
-    "\\\\server\\freigabe\\datei.txt",   # UNC
+    "\\\\server\\freigabe\\datei.txt",  # UNC
     "//server/freigabe/datei.txt",
-    "\\\\?\\C:\\Windows\\system.ini",    # erweiterte Pfadsyntax umgeht normale Pruefungen
-    "\\\\.\\pipe\\jarvis",               # Geraetenamensraum
-    "\\\\127.0.0.1\\c$\\Windows",        # administrative Freigabe
+    "\\\\?\\C:\\Windows\\system.ini",  # erweiterte Pfadsyntax umgeht normale Pruefungen
+    "\\\\.\\pipe\\jarvis",  # Geraetenamensraum
+    "\\\\127.0.0.1\\c$\\Windows",  # administrative Freigabe
 ]
 
 
@@ -53,15 +53,23 @@ def test_laufwerke_und_netzwerkpfade_abgelehnt(workspace: Workspace, pfad: str) 
 # ---------------------------------------------------------------------------
 
 RESERVIERTE_NAMEN = [
-    "CON", "con", "CoN",
-    "PRN", "AUX", "NUL", "nul",
-    "COM1", "com9", "LPT1", "LPT9",
-    "con.txt",                 # Endung hilft nicht: CON bleibt CON
+    "CON",
+    "con",
+    "CoN",
+    "PRN",
+    "AUX",
+    "NUL",
+    "nul",
+    "COM1",
+    "com9",
+    "LPT1",
+    "LPT9",
+    "con.txt",  # Endung hilft nicht: CON bleibt CON
     "NUL.log",
     "COM1.tar.gz",
-    "notizen/CON",             # auch tief im Baum
-    "CON/datei.txt",           # auch als Ordnername
-    "nul ",                    # mit Leerzeichen dahinter
+    "notizen/CON",  # auch tief im Baum
+    "CON/datei.txt",  # auch als Ordnername
+    "nul ",  # mit Leerzeichen dahinter
 ]
 
 
@@ -72,12 +80,12 @@ def test_reservierte_geraetenamen_abgelehnt(workspace: Workspace, pfad: str) -> 
 
 
 HARMLOSE_AEHNLICHE_NAMEN = [
-    "conference.md",           # faengt mit CON an, ist aber nicht CON
+    "conference.md",  # faengt mit CON an, ist aber nicht CON
     "COMIC.txt",
     "nulpunkt.csv",
     "auxiliar/notiz.txt",
-    "lpt.txt",                 # ohne Ziffer nicht reserviert
-    "com10.txt",               # nur COM1..COM9 sind reserviert
+    "lpt.txt",  # ohne Ziffer nicht reserviert
+    "com10.txt",  # nur COM1..COM9 sind reserviert
 ]
 
 
@@ -92,12 +100,12 @@ def test_aehnliche_namen_bleiben_erlaubt(workspace: Workspace, pfad: str) -> Non
 # ---------------------------------------------------------------------------
 
 PUNKTE_UND_LEERZEICHEN = [
-    "bericht.txt.",            # wird unter Windows zu "bericht.txt"
+    "bericht.txt.",  # wird unter Windows zu "bericht.txt"
     "bericht.txt...",
     "bericht.txt ",
     "bericht.txt . ",
-    " bericht.txt",            # fuehrendes Leerzeichen im Namen
-    "ordner /datei.txt",       # Leerzeichen am Ende eines Ordnernamens
+    " bericht.txt",  # fuehrendes Leerzeichen im Namen
+    "ordner /datei.txt",  # Leerzeichen am Ende eines Ordnernamens
     "ordner./datei.txt",
 ]
 
@@ -124,7 +132,7 @@ def test_punkte_im_namen_bleiben_erlaubt(workspace: Workspace) -> None:
 # ---------------------------------------------------------------------------
 
 VERBOTENE_ZEICHEN = [
-    "datei.txt:geheim",            # Alternate Data Stream
+    "datei.txt:geheim",  # Alternate Data Stream
     "datei.txt:geheim:$DATA",
     "ordner:stream/datei.txt",
     "*.txt",
@@ -154,8 +162,9 @@ def test_steuerzeichen_abgelehnt(workspace: Workspace, pfad: str) -> None:
 # Gross-/Kleinschreibung
 # ---------------------------------------------------------------------------
 
+
 def test_aehnlicher_ordnername_ist_kein_unterordner(tmp_path: Path) -> None:
-    """"workspace_geheim" darf nicht als Teil von "workspace" durchgehen.
+    """ "workspace_geheim" darf nicht als Teil von "workspace" durchgehen.
 
     Ein reiner Textvergleich ("faengt der Pfad mit dem Workspace an?")
     wuerde hier versagen. Deshalb vergleicht `contains` ganze Pfadteile.
@@ -197,6 +206,7 @@ def test_verschiedene_laufwerke_sind_nie_enthalten(workspace: Workspace) -> None
 # Junctions und symbolische Links (nur Windows)
 # ---------------------------------------------------------------------------
 
+
 @nur_windows
 def test_junction_nach_draussen_wird_erkannt(workspace: Workspace, tmp_path: Path) -> None:
     """Eine Junction ist die Windows-Variante eines Ordner-Symlinks.
@@ -213,6 +223,7 @@ def test_junction_nach_draussen_wird_erkannt(workspace: Workspace, tmp_path: Pat
         ["cmd", "/c", "mklink", "/J", str(junction), str(draussen)],
         capture_output=True,
         text=True,
+        check=False,  # wir werten returncode selbst aus
     )
     if ergebnis.returncode != 0:
         pytest.skip(f"mklink /J nicht moeglich: {ergebnis.stdout} {ergebnis.stderr}")
@@ -233,6 +244,7 @@ def test_junction_innerhalb_bleibt_erlaubt(workspace: Workspace) -> None:
         ["cmd", "/c", "mklink", "/J", str(junction), str(ziel)],
         capture_output=True,
         text=True,
+        check=False,  # wir werten returncode selbst aus
     )
     if ergebnis.returncode != 0:
         pytest.skip(f"mklink /J nicht moeglich: {ergebnis.stdout} {ergebnis.stderr}")
@@ -260,6 +272,7 @@ def test_dateisymlink_nach_draussen_wird_erkannt(workspace: Workspace, tmp_path:
 # ---------------------------------------------------------------------------
 # Die reine Textpruefung direkt
 # ---------------------------------------------------------------------------
+
 
 def test_split_relative_zerlegt_beide_trennzeichen() -> None:
     assert split_relative("notizen\\schule\\mathe.txt") == ["notizen", "schule", "mathe.txt"]

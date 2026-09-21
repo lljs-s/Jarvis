@@ -5,15 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from conftest import symlink_or_skip
 
 from jarvis.errors import ToolError, WorkspaceViolation
 from jarvis.workspace import Workspace
 
-from conftest import symlink_or_skip
-
 # Jeder dieser Pfade MUSS abgelehnt werden.
 AUSBRUCHSVERSUCHE = [
-    "  datei.txt  ",   # Windows kuerzt Leerzeichen am Rand weg - wir lehnen ab
+    "  datei.txt  ",  # Windows kuerzt Leerzeichen am Rand weg - wir lehnen ab
     "../geheim.txt",
     "../../etc/passwd",
     "notizen/../../draussen.txt",

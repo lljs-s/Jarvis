@@ -186,9 +186,7 @@ class Workspace:
         # Zeigt eine solche Verknuepfung nach draussen, faellt das hier auf.
         real = candidate.resolve()
         if not self.contains(real):
-            raise WorkspaceViolation(
-                f"Pfad zeigt aus dem Workspace heraus: {relative!r} -> {real}"
-            )
+            raise WorkspaceViolation(f"Pfad zeigt aus dem Workspace heraus: {relative!r} -> {real}")
         return real
 
     def contains(self, path: Path) -> bool:

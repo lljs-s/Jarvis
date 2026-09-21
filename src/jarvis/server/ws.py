@@ -60,7 +60,11 @@ async def chat(websocket: WebSocket) -> None:
             try:
                 anfrage = ChatAnfrage.model_validate(rohdaten)
             except ValidationError as exc:
-                await _sende(websocket, "fehler", f"Nachricht nicht verstanden: {exc.error_count()} Feldfehler")
+                await _sende(
+                    websocket,
+                    "fehler",
+                    f"Nachricht nicht verstanden: {exc.error_count()} Feldfehler",
+                )
                 continue
             await _antworte_platzhalter(websocket, anfrage.text)
     except Exception:  # noqa: BLE001 - Verbindungsabbruch ist normal, nicht schlimm

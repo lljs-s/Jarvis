@@ -65,9 +65,7 @@ class ListFilesTool(Tool):
         files = self.workspace.iter_files(subdir)
         if not files:
             return ToolResult(f"Keine Dateien in '{subdir}'. Der Ordner ist leer.")
-        lines = [
-            f"{self.workspace.label(p)}  ({p.stat().st_size} Bytes)" for p in files
-        ]
+        lines = [f"{self.workspace.label(p)}  ({p.stat().st_size} Bytes)" for p in files]
         return ToolResult(f"{len(files)} Datei(en):\n" + "\n".join(lines))
 
 
@@ -114,7 +112,10 @@ class SearchTextTool(Tool):
     input_schema: ClassVar[dict[str, Any]] = {
         "type": "object",
         "properties": {
-            "query": {"type": "string", "description": "Gesuchter Text (ohne Gross/Klein-Beachtung)."},
+            "query": {
+                "type": "string",
+                "description": "Gesuchter Text (ohne Gross/Klein-Beachtung).",
+            },
             "subdir": {"type": "string", "description": "Optionaler Unterordner. Standard: '.'"},
         },
         "required": ["query"],

@@ -60,7 +60,10 @@ def documents_dir() -> Path:
                 pfad = Path(zeiger.value)
                 ctypes.windll.ole32.CoTaskMemFree(zeiger)  # type: ignore[attr-defined]
                 return pfad
-        except Exception:  # noqa: BLE001 - Rueckfallebene ist wichtiger als der Grund
+        except Exception:  # noqa: BLE001, S110 - hier zaehlt nur die Rueckfallebene
+            # Egal warum Windows nicht antwortet: unten steht ein
+            # funktionierender Ersatzweg. Ein Absturz waere hier das
+            # schlechtere Verhalten.
             pass
 
     heim = Path.home()

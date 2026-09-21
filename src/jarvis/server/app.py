@@ -31,7 +31,7 @@ def create_app(settings: Settings | None = None, token: str | None = None) -> Fa
         title="Jarvis",
         version=__version__,
         description="Lokale KI-Zentrale. Laeuft nur auf diesem Rechner.",
-        docs_url=None,       # keine oeffentliche API-Dokumentation
+        docs_url=None,  # keine oeffentliche API-Dokumentation
         redoc_url=None,
         openapi_url=None,
     )

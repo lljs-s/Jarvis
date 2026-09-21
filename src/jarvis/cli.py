@@ -19,12 +19,12 @@ from rich.console import Console
 from rich.panel import Panel
 
 from . import __version__
-from .core.agent import Agent, AgentEvent
 from .config import PROJECT_ROOT, Settings, load_settings
-from .errors import JarvisError
+from .core.agent import Agent, AgentEvent
 from .core.models.anthropic_model import AnthropicModel
 from .core.tools.files import default_tools
 from .core.tools.registry import ToolRegistry
+from .errors import JarvisError
 from .workspace import Workspace
 
 app = typer.Typer(
@@ -84,7 +84,12 @@ def doctor() -> None:
     settings = load_settings()
 
     env_file = PROJECT_ROOT / ".env"
-    console.print(f"  .env-Datei      : {'[green]gefunden[/green]' if env_file.exists() else '[red]fehlt[/red] (kopiere .env.example nach .env)'}")
+    env_zustand = (
+        "[green]gefunden[/green]"
+        if env_file.exists()
+        else "[red]fehlt[/red] (kopiere .env.example nach .env)"
+    )
+    console.print(f"  .env-Datei      : {env_zustand}")
 
     key = settings.anthropic_api_key
     if key and key.get_secret_value().strip():
@@ -128,7 +133,9 @@ def workspace() -> None:
 @app.command()
 def ask(
     task: Annotated[str, typer.Argument(help="Was soll Jarvis tun?")],
-    quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Zwischenschritte ausblenden.")] = False,
+    quiet: Annotated[
+        bool, typer.Option("--quiet", "-q", help="Zwischenschritte ausblenden.")
+    ] = False,
 ) -> None:
     """Stellt Jarvis eine Aufgabe und zeigt die Antwort."""
     settings = load_settings()
@@ -155,7 +162,9 @@ def ask(
 
 @app.command()
 def chat(
-    quiet: Annotated[bool, typer.Option("--quiet", "-q", help="Zwischenschritte ausblenden.")] = False,
+    quiet: Annotated[
+        bool, typer.Option("--quiet", "-q", help="Zwischenschritte ausblenden.")
+    ] = False,
 ) -> None:
     """Gespraech mit Gedaechtnis. Beenden mit 'exit' oder Strg+C."""
     settings = load_settings()
@@ -190,8 +199,9 @@ def chat(
             err_console.print(f"[red]Fehler:[/red] {exc}\n")
             continue
         console.print(Panel(result.answer, title="Jarvis", border_style="green"))
+        verbrauch = result.usage
         console.print(
-            f"[dim]{result.usage.input_tokens} Tokens rein / {result.usage.output_tokens} raus[/dim]\n"
+            f"[dim]{verbrauch.input_tokens} Tokens rein / {verbrauch.output_tokens} raus[/dim]\n"
         )
 
 
@@ -208,7 +218,8 @@ def serve() -> None:
     `jarvis dev` gedacht.
     """
     from .server.security import create_session_token
-    from .server.start import serve as _serve, startadresse
+    from .server.start import serve as _serve
+    from .server.start import startadresse
 
     settings = load_settings()
     token = create_session_token(settings)
@@ -236,7 +247,8 @@ def dev() -> None:
     import subprocess
 
     from .server.security import create_session_token
-    from .server.start import frontend_ordner, npm_befehl, serve as _serve, startadresse, starte_vite
+    from .server.start import frontend_ordner, npm_befehl, startadresse, starte_vite
+    from .server.start import serve as _serve
 
     settings = load_settings()
 

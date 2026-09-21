@@ -12,11 +12,11 @@ from typing import Any, ClassVar
 import pytest
 
 from jarvis.core.agent import Agent, AgentEvent
-from jarvis.errors import ToolError
 from jarvis.core.models.base import Message, ModelReply, ToolCall, Usage
 from jarvis.core.tools.base import RiskLevel, Tool, ToolResult
 from jarvis.core.tools.files import default_tools
 from jarvis.core.tools.registry import ToolRegistry
+from jarvis.errors import ToolError
 from jarvis.workspace import Workspace
 
 
@@ -53,7 +53,9 @@ class GefaehrlichesWerkzeug(Tool):
         return ToolResult("passiert nicht")
 
 
-def _agent(workspace: Workspace, replies: list[ModelReply], **kwargs: Any) -> tuple[Agent, FakeModel]:
+def _agent(
+    workspace: Workspace, replies: list[ModelReply], **kwargs: Any
+) -> tuple[Agent, FakeModel]:
     model = FakeModel(replies)
     registry = ToolRegistry(default_tools(workspace))
     return Agent(model=model, tools=registry, **kwargs), model
@@ -134,7 +136,9 @@ def test_sandbox_verstoss_beendet_die_aufgabe_nicht(filled_workspace: Workspace)
     replies = [
         ModelReply(
             text="",
-            tool_calls=(ToolCall(id="t1", name="read_file", arguments={"path": "../../etc/passwd"}),),
+            tool_calls=(
+                ToolCall(id="t1", name="read_file", arguments={"path": "../../etc/passwd"}),
+            ),
         ),
         ModelReply(text="Darauf habe ich keinen Zugriff."),
     ]
