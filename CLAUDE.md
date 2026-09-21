@@ -6,14 +6,18 @@
 
 ## 1. Projektziel
 
-Eine lokale Anwendung (Windows, Python), in der mehrere KI-Modelle als Agents
-zusammenarbeiten:
+Eine lokale Desktop-Anwendung (**Windows**), in der der Nutzer private und
+spaeter berufliche Arbeit buendelt. Mehrere KI-Modelle arbeiten als Agents
+zusammen und greifen auf lokal gespeicherte Dateien zu.
 
-- Ein **Orchestrator ("Jarvis")** nimmt Aufgaben entgegen, zerlegt sie und
-  verteilt sie an **Worker-Agents** (Recherche, Schreiben, Code, Pruefung).
-- Modelle haengen hinter einer **einheitlichen Adapter-Schicht**:
-  zuerst Anthropic, spaeter OpenAI, Midjourney, lokale Modelle via Ollama.
-- Alle Agents arbeiten **ausschliesslich im Workspace-Ordner**.
+- **Jarvis** ist der zentrale Ansprechpartner (Modell: Gemini). Er nimmt
+  Aufgaben entgegen, zerlegt sie und verteilt sie an **Worker-Agents**.
+- **Claude Opus** ist der **Thinktank** fuer schwere Analyse, Strategie und
+  schwierigen Code. Jarvis eskaliert selbstaendig an ihn, kuendigt das im
+  Chat an und nennt den Grund. Der Nutzer kann ihn mit `/opus` direkt rufen.
+- **Ollama** (lokal) fuer einfache Aufgaben und vertrauliche Daten.
+  Noch nicht installiert - kommt in einigen Wochen.
+- **Module** buendeln Daten und Widgets; ein Modul ist ein echter Ordner.
 - **Human-in-the-loop:** jede Aktion hat eine Risikostufe; HIGH braucht die
   ausdrueckliche Bestaetigung des Nutzers, mit Plan und Diff-Vorschau vorab.
 - Jede Aktion landet im **Logbuch**; **API-Kosten** werden gezaehlt und begrenzt.
@@ -25,26 +29,32 @@ weiterbauen.
 ## 2. Architektur
 
 ```
-        Nutzer
-          |  CLI (jetzt)  /  lokale Web-UI (Etappe 6)
-+---------v-------------------------------------------+
-|  SCHNITTSTELLE   cli.py  ->  spaeter server/ + ui/   |
-+------------------------------------------------------+
-|  AGENT           agent.py  (Denken <-> Werkzeuge)    |
-|                  spaeter orchestrator/ (Jarvis +     |
-|                  Worker + Reviewer)                  |
-+---------------+------------------+-------------------+
-|  MODELLE      |  WERKZEUGE       |  SICHERHEIT/LOG   |
-|  models/      |  tools/          |  (ab Etappe 2)    |
-|  base.py      |  base.py         |  safety/  Risiko  |
-|  anthropic_   |  registry.py     |  journal/ SQLite  |
-|  model.py     |  files.py        |  costs/   Limits  |
-+---------------+------------------+-------------------+
-|  WORKSPACE-WAECHTER   workspace.py                   |
-|  Einzige Tuer zum Dateisystem. Jeder Pfad wird hier  |
-|  geprueft; alles andere ist WorkspaceViolation.      |
-+------------------------------------------------------+
+  Browser (Etappe 1-7)   ->   spaeter Tauri-Fenster (Etappe 8)
+  React + TypeScript + Vite
+        |  REST      Module, Agents, Einstellungen
+        |  WebSocket Chat-Strom, Agent-Status, Freigabe-Anfragen
++-------v------------------------------------------------------+
+|  server/    FastAPI, ausschliesslich 127.0.0.1                |
+|             uebersetzt HTTP <-> Kern. Enthaelt KEINE Logik.   |
++---------------------------------------------------------------+
+|  core/      Der Kern - kann alles, weiss nicht, wer fragt      |
+|   agent.py        Denken <-> Werkzeuge                         |
+|   models/         base.py | anthropic | gemini | ollama        |
+|   tools/          registry + Werkzeuge mit Risikostufen        |
+|   modules/        module.json lesen, Berechtigungen pruefen    |
+|   safety/         Risiko, Freigabe-Gate, Datenschutzstufen     |
+|   journal/  costs/  orchestrator/                              |
++---------------------------------------------------------------+
+|  workspace.py   DER WAECHTER - einzige Tuer zum Dateisystem    |
++---------------------------------------------------------------+
+        |
+   Dokumente\Jarvis-Workspace   (ausserhalb des Projekts!)
 ```
+
+Zwei Tore, durch die **alles** muss: der **Workspace-Waechter** (kein Pfad
+nach draussen) und das **Freigabe-Gate** (keine HIGH-Aktion ohne Ja des
+Nutzers). Beide sitzen im Kern, nicht im Server - so kann auch die CLI nicht
+daran vorbei.
 
 ### Ordner
 
@@ -53,89 +63,196 @@ src/jarvis/
   config.py       Einstellungen aus .env (pydantic-settings, typisiert)
   errors.py       JarvisError, ConfigError, WorkspaceViolation, ToolError, ModelError
   workspace.py    Der Waechter. Einzige Stelle, die Pfade aufloest.
-  models/
-    base.py       Neutrale Typen: Message, ModelReply, ToolCall, ToolOutcome, Usage
-    anthropic_model.py   Adapter fuer das `anthropic`-SDK
-  tools/
-    base.py       Tool (ABC), RiskLevel, ToolResult
-    registry.py   ToolRegistry: Namen -> Werkzeuge, Specs fuers Modell
-    files.py      list_files, read_file, search_text (alle LOW/lesend)
-  agent.py        Die Schleife: Modell fragen -> Werkzeuge -> wiederholen
-  cli.py          typer-CLI: doctor, workspace, ask, chat, version
-tests/            pytest; Schwerpunkt Sandbox-Ausbruchsversuche
-workspace/        Arbeitsordner der Agents (gitignored)
+  core/
+    agent.py      Die Schleife: Modell fragen -> Werkzeuge -> wiederholen
+    models/       base.py (neutrale Typen), anthropic_model.py
+    tools/        base.py (Tool, RiskLevel), registry.py, files.py
+  server/
+    app.py        FastAPI-App, Schichten: CORS -> Tuersteher -> Routen
+    security.py   Token, Origin- und Host-Pruefung
+    schemas.py    Der Vertrag zum Frontend (= die TS-Typen in lib/api.ts)
+    routes/       system.py, agents.py, modules.py
+    ws.py         Chat-WebSocket
+    start.py      Startlogik fuer `jarvis serve` und `jarvis dev`
+  cli.py          typer-CLI: doctor, workspace, ask, chat, serve, dev, version
+frontend/
+  src/lib/        api.ts, token.ts, chatVerbindung.ts, shortcuts.ts, slash.ts
+  src/store/      store.ts (zustand)
+  src/components/ Panel, Dialog, CommandPalette, StatusBar
+  src/features/   chat/, agents/, modules/, settings/
+  src/app/App.tsx Hauptfenster
+tests/            pytest; Schwerpunkt Sandbox- und Server-Angriffe
+test-workspace/   Dummy-Dateien zum Ausprobieren (gehoert ins Repo)
 ```
 
-### Warum schlanke Eigenloesung statt Framework
+### Warum dieser Stack
 
-Entschieden in Session 1: nur das offizielle `anthropic`-SDK plus eigene
-Werkzeugschleife - **kein** Claude Agent SDK, **kein** LangGraph.
-Gruende: (1) das Projekt soll mehrere Anbieter hinter EINER eigenen
-Adapter-Schicht bedienen, ein anbieterspezifisches Agent-Framework arbeitet
-dagegen; (2) Sandbox und Approval-Gate muessen technisch erzwungen sein -
-das geht nur, wenn kein Framework an uns vorbei Dateien anfasst;
-(3) Lernwert: jeder Schritt ist sichtbarer eigener Code.
-LangGraph darf in Etappe 4 neu bewertet werden, falls der Orchestrator-Graph
-wirklich komplex wird.
+- **FastAPI + React + Vite:** der KI-Teil muss Python sein, die Oberflaeche
+  soll modern und tastaturfreundlich sein. Ein WebSocket reicht fuer den
+  Chat-Strom.
+- **zustand** statt Redux: ein Store ist eine Funktion, kein Baukasten.
+- **cmdk** fuer die Befehlspalette, **dockview** ab Etappe 7 fuer andockbare
+  Panels - beides bewaehrt, Eigenbau waere hier reine Fehlerquelle.
+- **Kein Agent-Framework** (kein Claude Agent SDK, kein LangGraph):
+  (1) mehrere Anbieter hinter EINER eigenen Adapter-Schicht, ein
+  anbieterspezifisches Framework arbeitet dagegen; (2) Sandbox und
+  Approval-Gate muessen technisch erzwungen sein - das geht nur, wenn kein
+  Framework an uns vorbei Dateien anfasst; (3) Lernwert.
+  LangGraph darf in Etappe 6 neu bewertet werden, falls der
+  Orchestrator-Graph wirklich komplex wird.
+- **Tauri** erst in Etappe 8: bis dahin ist der Browser schneller zu testen.
 
 ## 3. Sicherheitsregeln (unverhandelbar)
 
-1. **Kein Dateizugriff ausserhalb des Workspace.** Werkzeuge rufen
-   `Workspace.resolve()` / `resolve_file()` auf - niemals selbst `open()`,
-   `Path(...)`-Basteleien oder `os.path.join` mit Modell-Eingaben.
-   Abgewehrt werden: `..`, absolute Unix- und Windows-Pfade, UNC-Pfade, `~`,
-   Null-Bytes, unter Windows reservierte Namen und Symlinks nach draussen.
-2. **Risikostufen.** LOW = nur lesen. MEDIUM = neue Dateien anlegen,
-   Netzwerk lesen. HIGH = ueberschreiben, loeschen, Code ausfuehren,
-   teure API-Aufrufe. Der Agent fuehrt nur Werkzeuge bis `max_risk` aus;
-   alles darueber wird abgelehnt (ab Etappe 2: zur Bestaetigung vorgelegt).
-3. **Keine Geheimnisse im Repo.** API-Keys nur aus `.env` (gitignored),
-   im Code als `SecretStr`. Keys nie loggen, nie in Fehlermeldungen ausgeben.
-4. **Sicherheitsbremsen.** `max_steps` begrenzt die Werkzeugrunden pro
-   Aufgabe, `max_read_bytes` die Dateigroesse. Ab Etappe 2 zusaetzlich
-   Kostenlimit pro Aufgabe und pro Tag.
-5. **Fehler des Modells sind keine Abstuerze.** Sandbox-Verstoesse und
-   Werkzeugfehler gehen als `is_error`-Werkzeugergebnis zurueck ans Modell,
-   damit es sich korrigieren kann. Nur Konfig- und API-Fehler brechen ab.
+### 3.1 Kein Dateizugriff ausserhalb des Workspace
+
+Werkzeuge rufen `Workspace.resolve()` / `resolve_file()` auf - **niemals**
+selbst `open()`, `Path(...)`-Basteleien oder `os.path.join` mit
+Modell-Eingaben.
+
+Die Pruefung ist zweistufig:
+1. `split_relative()` prueft **rein textlich**, ohne Dateisystem. Sie
+   verhaelt sich auf jedem Betriebssystem gleich.
+2. `Workspace.resolve()` loest auf (Symlinks, Junctions) und prueft mit
+   `contains()` erneut, ob das Ergebnis im Workspace liegt.
+
+### 3.2 Windows-Regeln fuer Pfade (feste Regel)
+
+Der Waechter muss **jeden** dieser Faelle ablehnen, und fuer **jeden** muss
+es einen Test in `tests/test_workspace_windows.py` geben:
+
+| Fall | Beispiel |
+|---|---|
+| Laufwerksbuchstaben | `C:\Windows\system.ini`, `c:/windows` |
+| laufwerksrelativ | `C:notizen.txt` |
+| UNC / Netzwerk | `\\server\freigabe\x`, `\\127.0.0.1\c$` |
+| erweiterte Syntax | `\\?\C:\...`, `\\.\pipe\...` |
+| reservierte Namen | `CON`, `nul.txt`, `COM1.tar.gz`, `LPT9` |
+| Punkt/Leerzeichen am Ende | `bericht.txt.`, `ordner `, `  datei.txt  ` |
+| Alternate Data Streams | `datei.txt:geheim` |
+| verbotene Zeichen | `< > : " \| ? *`, Steuerzeichen |
+| Gross-/Kleinschreibung | `c:\ws` und `C:\WS` sind derselbe Ordner |
+| Junctions / Symlinks | `mklink /J` aus dem Workspace hinaus |
+| aehnliche Nachbarn | `workspace_geheim` ist kein Teil von `workspace` |
+
+Vergleiche von Pfaden laufen ueber `os.path.commonpath` + `os.path.normcase`,
+**nie** ueber Textvergleich - sonst stimmt die Gross-/Kleinschreibung unter
+Windows nicht.
+
+Tests, die echte Junctions oder Symlinks brauchen, laufen nur unter Windows
+und ueberspringen sich sonst selbst (`nur_windows`). Alle anderen laufen
+ueberall.
+
+### 3.3 Absicherung des lokalen Servers (feste Regel)
+
+Jede Webseite im Browser darf Anfragen an `127.0.0.1` schicken. Deshalb gilt
+ab Etappe 1 und dauerhaft:
+
+1. **Sitzungs-Token** - beim Start gewuerfelt (`secrets.token_urlsafe`).
+   Ohne gueltiges Token antwortet **weder REST noch WebSocket** (401).
+   Vergleich immer mit `secrets.compare_digest` (zeitkonstant).
+2. **Origin-Pruefung** - nur die eigene Oberflaeche. Beim **WebSocket ist der
+   Origin Pflicht**, weil ein WebSocket keiner Same-Origin-Regel unterliegt
+   (Cross-Site-WebSocket-Hijacking). Pruefung **vor** `accept()`.
+3. **Host-Pruefung** - schuetzt gegen DNS-Rebinding, bei REST und WebSocket.
+4. `JARVIS_HOST` laesst nur Loopback-Adressen zu (Validator in `config.py`).
+5. `/docs`, `/redoc` und `/openapi.json` bleiben abgeschaltet.
+6. Das Frontend bekommt **nie** einen API-Key - nur `hat_..._key: bool`.
+   Das Token steht nur in der Adresszeile beim ersten Aufruf, wandert in den
+   sessionStorage und wird sofort aus der Adresse entfernt.
+
+Jede dieser Schranken braucht einen Test, der zeigt, dass ein fremder
+Absender **abgewiesen** wird - nicht nur, dass der eigene durchkommt.
+
+### 3.4 Wo die Daten liegen (feste Regel)
+
+- Der **echte Workspace liegt ausserhalb des Projektordners**.
+  Standard: `Dokumente\Jarvis-Workspace`, unter Windows ueber
+  `SHGetKnownFolderPath` ermittelt (wichtig, falls "Dokumente" nach OneDrive
+  umgeleitet ist). Umstellbar mit `JARVIS_WORKSPACE_DIR` in der `.env`.
+- Im Projekt liegt **nur** `test-workspace/` mit Dummy-Dateien.
+- `workspace/` im Projekt ist in `.gitignore` - falls jemand den Pfad doch
+  dorthin stellt, landen die Daten trotzdem nicht im Repo.
+
+### 3.5 Risikostufen
+
+LOW = nur lesen. MEDIUM = neue Dateien anlegen, Netzwerk lesen.
+HIGH = ueberschreiben, loeschen, Code ausfuehren, teure API-Aufrufe.
+Der Agent fuehrt nur Werkzeuge bis `max_risk` aus; alles darueber wird
+abgelehnt (ab Etappe 4: zur Bestaetigung vorgelegt).
+
+### 3.6 Weitere Regeln
+
+- **Keine Geheimnisse im Repo.** API-Keys nur aus `.env` (gitignored),
+  im Code als `SecretStr`. Keys nie loggen, nie in Fehlermeldungen ausgeben.
+- **Sicherheitsbremsen.** `max_steps` begrenzt Werkzeugrunden pro Aufgabe,
+  `max_read_bytes` die Dateigroesse, ab Etappe 4 Kostenlimit pro Aufgabe
+  und pro Tag.
+- **Datenschutzstufe `lokal`:** solche Module duerfen nur von Ollama-Modellen
+  verarbeitet werden - technisch erzwungen. Solange Ollama fehlt, heisst das:
+  **gar kein Modell** darf sie sehen (sicher by default).
+- **Fehler des Modells sind keine Abstuerze.** Sandbox-Verstoesse und
+  Werkzeugfehler gehen als `is_error`-Ergebnis zurueck ans Modell, damit es
+  sich korrigieren kann. Nur Konfig- und API-Fehler brechen ab.
 
 ## 4. Konventionen
 
 - **Python >= 3.11**, `from __future__ import annotations` in jeder Datei,
   vollstaendige Typannotationen, Dataclasses statt loser Dicts.
-- **Abhaengigkeiten sparsam:** `anthropic`, `pydantic-settings`, `typer`,
-  `rich`; dev: `pytest`, `mypy`, `ruff`. Neue Abhaengigkeit = kurze Begruendung.
-- **Sprache:** Code, Bezeichner und Docstrings so, wie sie hier stehen
-  (Docstrings/Kommentare auf Deutsch, ohne Umlaute in Quelltextkommentaren,
-  damit es unter Windows keine Encoding-Ueberraschungen gibt). Nutzertexte
-  der CLI auf Deutsch.
-- **Modelle** werden nie im Code fest verdrahtet, sondern kommen aus `.env`
-  (`JARVIS_MODEL`). Standard: `claude-opus-5`.
+- **TypeScript strict**, keine `any`. Die Typen in `frontend/src/lib/api.ts`
+  entsprechen genau den Pydantic-Modellen in `server/schemas.py` - wer eines
+  aendert, aendert das andere mit.
+- **Abhaengigkeiten sparsam.** Python: `anthropic`, `pydantic-settings`,
+  `typer`, `rich`, `fastapi`, `uvicorn`; dev: `pytest`, `mypy`, `ruff`,
+  `httpx`. Frontend: `react`, `zustand`, `cmdk`, `tailwindcss`;
+  dev: `vite`, `vitest`, `@testing-library/*`. Neue Abhaengigkeit =
+  kurze Begruendung.
+- **Sprache:** Docstrings und Kommentare auf Deutsch, **ohne Umlaute im
+  Quelltext** (Encoding-Ruhe unter Windows). Nutzertexte auf Deutsch, dort
+  mit Umlauten.
+- **Modelle** nie im Code fest verdrahten, immer aus `.env` bzw. den
+  Einstellungen.
+- **Kosten** werden intern **in USD** gezaehlt (so stehen die Preislisten der
+  Anbieter). Die Anzeige rechnet mit `JARVIS_USD_TO_EUR` in EUR um.
+- **Betriebssystem:** entwickelt und betrieben wird unter **Windows**.
+  Befehle in Doku und Skripten sind PowerShell-Befehle.
 - **Tests zu jeder Etappe.** Neue Faehigkeit ohne Test = nicht fertig.
-  Tests laufen ohne Netz und ohne API-Kosten (FakeModel in `tests/test_agent.py`).
+  Tests laufen ohne Netz und ohne API-Kosten (FakeModel bzw. Attrappen).
 - **Commits** klein und sprechend, auf dem vereinbarten Branch.
 
-## 5. Stand (nach Session 1)
+## 5. Stand (nach Session 2)
 
-Fertig: Etappe 0 (Setup) und Etappe 1 (ein Agent, ein Modell, sichere
-Lese-Werkzeuge, CLI, 65 Tests). Details und naechste Schritte: `ROADMAP.md`.
+Fertig: **Etappe 0** (Setup) und **Etappe 1** (Grundgeruest der Oberflaeche).
 
-**Bewusst noch nicht da:** Schreiben/Loeschen von Dateien, Code-Ausfuehrung,
-Netzwerkzugriff, Approval-Gate, Logbuch, Kostenzaehler, zweites Modell,
-Orchestrator, Gedaechtnis, Web-UI.
+- Kern nach `core/` umgezogen, Waechter fuer Windows gehaertet
+- lokaler Server mit Token-, Origin- und Host-Pruefung
+- React-Oberflaeche: drei Bereiche, Befehlspalette, konfigurierbare
+  Tastenkuerzel, Slash-Befehle, hell/dunkel
+- **216 Tests** (159 Python + 57 Frontend), davon 5 nur unter Windows
 
-## 6. Befehle
+Details und naechste Schritte: `ROADMAP.md`.
 
-```bash
-python -m venv .venv                  # einmalig
-.venv\Scripts\activate                # Windows (Linux: source .venv/bin/activate)
-pip install -e ".[dev]"               # Projekt + Entwicklungswerkzeuge
-copy .env.example .env                # Windows (Linux: cp)
+**Bewusst noch nicht da:** Modulsystem mit echten Ordnern, KI-Anbindung
+(Gemini), Approval-Gate mit Diff, Logbuch, Kostenzaehler, Opus-Eskalation,
+Ollama, echte Agents, andockbare Panels, Tauri-Paketierung.
 
-jarvis doctor                         # Einrichtung pruefen (kostenlos)
-jarvis workspace                      # Workspace-Inhalt zeigen
-jarvis ask "Was steht in todo.txt?"   # eine Aufgabe
-jarvis chat                           # Gespraech mit Gedaechtnis
+## 6. Befehle (PowerShell)
 
-pytest                                # alle Tests (ohne Netz, ohne Kosten)
-mypy src && ruff check src            # Typen und Stil
+```powershell
+# Einmalig einrichten
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+Copy-Item .env.example .env
+cd frontend; npm install; cd ..
+
+# Starten
+jarvis dev            # Server + Oberflaeche, zeigt den Link mit Token
+jarvis serve          # nur der Server
+jarvis doctor         # Einrichtung pruefen (kostenlos)
+
+# Pruefen
+pytest                            # Python-Tests
+cd frontend; npm test; cd ..      # Frontend-Tests
+mypy src; ruff check src tests    # Typen und Stil
 ```

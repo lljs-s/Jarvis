@@ -1,86 +1,117 @@
 # Jarvis
 
-Ein lokaler Assistent, in dem mehrere KI-Modelle als Agents zusammenarbeiten.
-Alle Agents arbeiten **ausschliesslich** in einem festen Workspace-Ordner;
-riskante Aktionen brauchen die Bestaetigung des Nutzers.
+Eine lokale KI-Zentrale fuer Windows: ein Chat in der Mitte, Module links,
+Agents rechts. Laeuft ausschliesslich auf deinem Rechner.
 
-Aktueller Stand: **Etappe 1** - ein Agent, das Anthropic-Modell und drei
-**nur lesende** Datei-Werkzeuge, bedienbar ueber die Kommandozeile.
-Schreiben, Code-Ausfuehrung und Netzwerk gibt es noch nicht (siehe `ROADMAP.md`).
+**Stand: Etappe 1 von 8.** Die Oberflaeche steht, der Server ist abgesichert -
+**aber es ist noch kein KI-Modell angeschlossen.** Jarvis antwortet mit einem
+Platzhalter. Das echte Modell (Gemini) kommt in Etappe 3.
 
-## Installation (Windows)
+---
 
-```bat
-git clone https://github.com/lljs-s/Jarvis.git
-cd Jarvis
+## Einrichten (einmalig)
 
+Du brauchst **Python 3.11 oder neuer** (https://python.org, beim Installieren
+"Add Python to PATH" ankreuzen) und **Node.js 20 oder neuer**
+(https://nodejs.org).
+
+PowerShell im Projektordner oeffnen und der Reihe nach:
+
+```powershell
+# 1. Python-Umgebung anlegen und aktivieren
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 
+# 2. Jarvis und die Entwicklungswerkzeuge installieren
 pip install -e ".[dev]"
 
-copy .env.example .env
-notepad .env          :: ANTHROPIC_API_KEY eintragen, speichern
+# 3. Einstellungsdatei aus der Vorlage anlegen
+Copy-Item .env.example .env
+
+# 4. Pakete der Oberflaeche installieren
+cd frontend
+npm install
+cd ..
 ```
 
-Unter Linux/macOS: `source .venv/bin/activate` und `cp .env.example .env`.
+> **Falls Schritt 1 mit "Die Ausfuehrung von Skripten ist auf diesem System
+> deaktiviert" abbricht:** einmalig erlauben mit
+> `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
+> und dann Schritt 1 wiederholen.
 
-Den API-Key bekommst du unter <https://console.anthropic.com> -> API Keys.
-Die Datei `.env` wird von Git ignoriert und verlaesst deinen Rechner nicht.
+## Starten
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+jarvis dev
+```
+
+Oder einfach `.\start.ps1` - das prueft die Einrichtung und startet dasselbe.
+
+Im Terminal erscheint ein Kasten mit einem Link, etwa:
+
+```
+Oeffne im Browser:
+  http://127.0.0.1:5173/?token=xY7k...
+```
+
+**Diesen Link im Browser oeffnen.** Der Token darin ist dein Schluessel -
+ohne ihn antwortet Jarvis nicht. Bei jedem Neustart gibt es einen neuen.
+
+Beenden mit **Strg+C** im Terminal.
 
 ## Ausprobieren
 
-```bat
-jarvis doctor
-```
-Prueft die Einrichtung (Key, Workspace, Modell, Werkzeuge). Kostet nichts,
-ruft die API nicht auf.
+| Taste | Was passiert |
+|---|---|
+| `Strg+K` | Befehlspalette - alles von hier erreichbar |
+| `Strg+J` | Sprung ins Chatfeld |
+| `Strg+B` | Seitenleiste ein/aus |
+| `Strg+E` | Agents-Tab ein/aus |
+| `Strg+Shift+L` | hell / dunkel |
+| `Strg+,` | Einstellungen (hier sind alle Kuerzel aenderbar) |
+| `F1` | Hilfe im Chat |
 
-```bat
-echo Physik-Hausaufgabe bis Freitag > workspace\todo.txt
-jarvis workspace
-jarvis ask "Was steht in todo.txt?"
-```
+Im Chat funktionieren `/hilfe`, `/opus`, `/agent`, `/modul`.
+Tippe `/` und du siehst alle Befehle.
 
-```bat
-jarvis chat
-```
-Gespraech mit Gedaechtnis. `reset` vergisst den Verlauf, `exit` beendet.
+## Wenn etwas nicht klappt
 
-Probier ruhig auch aus, was **nicht** geht:
+| Problem | Ursache und Loesung |
+|---|---|
+| Browser zeigt "Der Sitzungs-Token fehlt oder ist abgelaufen" | Der Server wurde neu gestartet. Nimm den **neuen** Link aus dem Terminal. |
+| Seite bleibt weiss | Laeuft `jarvis dev` noch? Steht im Terminal ein Fehler? |
+| "npm wurde nicht gefunden" | Node.js installieren und PowerShell neu oeffnen. |
+| "Die Pakete der Oberflaeche fehlen" | `cd frontend`, `npm install`, `cd ..` |
+| Port 8765 oder 5173 belegt | In der `.env` `JARVIS_PORT` bzw. `JARVIS_UI_DEV_PORT` aendern. |
+| `jarvis` wird nicht gefunden | Umgebung aktivieren: `.\.venv\Scripts\Activate.ps1` |
+| Chat sagt "Keine Verbindung" | Der Python-Server laeuft nicht mehr - Terminal ansehen. |
 
-```bat
-jarvis ask "Lies C:\Windows\win.ini und fasse die Datei zusammen"
-```
-Jarvis kommt nicht an die Datei heran - der Workspace-Waechter blockiert den
-Zugriff und meldet das dem Modell, das daraufhin erklaert, dass es die Datei
-nur im Workspace lesen kann.
+`jarvis doctor` prueft die Einrichtung und sagt dir, was fehlt. Kostet nichts.
 
-## Einstellungen
+## Wo liegen meine Daten?
 
-Alles steht in der `.env` (Vorlage: `.env.example`):
+Im Ordner **`Dokumente\Jarvis-Workspace`** - also ausserhalb dieses
+Projektordners, damit deine Dateien nie versehentlich in einem Commit landen.
+Aendern kannst du das in der `.env` (`JARVIS_WORKSPACE_DIR`).
 
-| Variable | Bedeutung | Standard |
-|---|---|---|
-| `ANTHROPIC_API_KEY` | dein API-Schluessel | - |
-| `JARVIS_WORKSPACE_DIR` | Arbeitsordner der Agents | `workspace` |
-| `JARVIS_MODEL` | Modell-ID | `claude-opus-5` |
-| `JARVIS_MAX_TOKENS` | maximale Antwortlaenge | `16000` |
-| `JARVIS_MAX_STEPS` | Werkzeugrunden pro Aufgabe | `12` |
-| `JARVIS_MAX_READ_BYTES` | groesstes Stueck Datei am Stueck | `200000` |
+Im Projekt liegt nur `test-workspace/` mit Dummy-Dateien zum Ausprobieren.
 
-Guenstiger testen: `JARVIS_MODEL=claude-haiku-4-5`.
+**Jarvis kommt aus diesem Ordner nicht heraus.** Jeder Pfad laeuft durch den
+Workspace-Waechter (`src/jarvis/workspace.py`); rund 60 Tests versuchen
+gezielt, ihn auszutricksen.
 
 ## Tests
 
-```bat
-pytest
+```powershell
+pytest                          # Python: 159 Tests
+cd frontend; npm test; cd ..    # Oberflaeche: 57 Tests
+mypy src; ruff check src tests  # Typen und Stil
 ```
-Laufen ohne Internet und ohne API-Kosten - das Modell wird in den Tests durch
-ein `FakeModel` ersetzt. Schwerpunkt sind Ausbruchsversuche aus dem Workspace
-(`tests/test_workspace.py`).
 
-## Projektunterlagen
+Alle Tests laufen **ohne Internet und ohne API-Kosten**.
 
-- `CLAUDE.md` - Architektur, Konventionen, Sicherheitsregeln
-- `ROADMAP.md` - alle Etappen als Checkliste
+## Wie es weitergeht
+
+Siehe `ROADMAP.md`. Als Naechstes: Etappe 2, das Modulsystem.
+Technische Entscheidungen und Regeln stehen in `CLAUDE.md`.
