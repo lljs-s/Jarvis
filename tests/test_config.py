@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from jarvis.config import Settings
+from jarvis.config import PROJECT_ROOT, Settings, default_workspace_dir
 from jarvis.errors import ConfigError
 
 
@@ -14,7 +14,8 @@ def test_standardwerte() -> None:
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
     assert settings.model == "claude-opus-5"
     assert settings.max_steps == 12
-    assert settings.workspace_dir == Path("workspace")
+    # None heisst: Standardort benutzen (Dokumente\Jarvis-Workspace).
+    assert settings.workspace_dir is None
 
 
 def test_werte_kommen_aus_der_umgebung(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -44,3 +45,51 @@ def test_workspace_pfad_wird_absolut(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("JARVIS_WORKSPACE_DIR", "workspace")
     settings = Settings(_env_file=None)  # type: ignore[call-arg]
     assert settings.workspace_path.is_absolute()
+
+
+# ---------------------------------------------------------------------------
+# Neu in Etappe 1: Workspace-Ort, Server-Werte, Kostenumrechnung
+# ---------------------------------------------------------------------------
+
+
+def test_standard_workspace_liegt_ausserhalb_des_projekts() -> None:
+    """Echte Daten gehoeren nicht ins Quelltext-Verzeichnis.
+
+    Sonst landen sie frueher oder spaeter in einem Commit.
+    """
+    standard = default_workspace_dir()
+    assert standard.is_absolute()
+    assert standard.name == "Jarvis-Workspace"
+    assert PROJECT_ROOT not in standard.parents
+    assert standard != PROJECT_ROOT
+
+
+def test_eigener_workspace_schlaegt_den_standard(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("JARVIS_WORKSPACE_DIR", "test-workspace")
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.workspace_path == PROJECT_ROOT / "test-workspace"
+
+
+def test_server_darf_nur_lokal_lauschen(monkeypatch: pytest.MonkeyPatch) -> None:
+    """0.0.0.0 wuerde Jarvis fuer das ganze Netzwerk oeffnen."""
+    monkeypatch.setenv("JARVIS_HOST", "0.0.0.0")
+    with pytest.raises(ValueError, match="nicht erlaubt"):
+        Settings(_env_file=None)  # type: ignore[call-arg]
+
+
+def test_erlaubte_origins_enthalten_nur_lokale_adressen() -> None:
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert f"http://127.0.0.1:{settings.port}" in settings.allowed_origins
+    assert f"http://localhost:{settings.ui_dev_port}" in settings.allowed_origins
+    for origin in settings.allowed_origins:
+        assert origin.startswith("http://127.0.0.1:") or origin.startswith("http://localhost:")
+
+
+def test_kosten_werden_in_usd_gezaehlt_und_in_eur_angezeigt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("JARVIS_USD_TO_EUR", "0.90")
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.usd_to_eur == 0.90
+    assert settings.eur(1.00) == 0.90
+    assert settings.eur(0.1234) == 0.1111

@@ -1,0 +1,5 @@
+Das ist der TEST-Workspace im Projektordner.
+
+Er enthaelt nur Dummy-Dateien zum Ausprobieren und Testen.
+Deine echten Daten liegen woanders: Dokumente\Jarvis-Workspace
+(einstellbar ueber JARVIS_WORKSPACE_DIR in der .env).

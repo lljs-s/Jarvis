@@ -5,6 +5,8 @@ Befehle:
     jarvis workspace         - zeigt den Workspace und seine Dateien
     jarvis ask "..."         - eine Aufgabe, eine Antwort
     jarvis chat              - Gespraech mit Gedaechtnis (bis "exit")
+    jarvis serve             - startet nur den lokalen Server
+    jarvis dev               - startet Server UND Oberflaeche (der normale Weg)
 """
 
 from __future__ import annotations
@@ -191,6 +193,100 @@ def chat(
         console.print(
             f"[dim]{result.usage.input_tokens} Tokens rein / {result.usage.output_tokens} raus[/dim]\n"
         )
+
+
+# ---------------------------------------------------------------------------
+# Oberflaeche (Etappe 1)
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def serve() -> None:
+    """Startet nur den lokalen Server (ohne Oberflaeche).
+
+    Nuetzlich zum Testen der Endpunkte. Fuer den normalen Betrieb ist
+    `jarvis dev` gedacht.
+    """
+    from .server.security import create_session_token
+    from .server.start import serve as _serve, startadresse
+
+    settings = load_settings()
+    token = create_session_token(settings)
+    console.print(
+        Panel(
+            f"Server laeuft auf [bold]http://{settings.host}:{settings.port}[/bold]\n"
+            f"Sitzungs-Token: [dim]{token}[/dim]\n\n"
+            f"Test im Browser:\n  {startadresse(settings, token, dev=False)}api/health\n\n"
+            "[yellow]Ohne dieses Token antwortet der Server nicht.[/yellow]\n"
+            "Beenden mit Strg+C.",
+            title="Jarvis Server",
+            border_style="cyan",
+        )
+    )
+    _serve(settings, token)
+
+
+@app.command()
+def dev() -> None:
+    """Startet Server und Oberflaeche zusammen - so benutzt du Jarvis.
+
+    Zwei Prozesse: der Python-Server (Port 8765) und der Vite-Server, der
+    die Oberflaeche ausliefert (Port 5173). Strg+C beendet beide.
+    """
+    import subprocess
+
+    from .server.security import create_session_token
+    from .server.start import frontend_ordner, npm_befehl, serve as _serve, startadresse, starte_vite
+
+    settings = load_settings()
+
+    if not (frontend_ordner() / "node_modules").is_dir():
+        err_console.print(
+            Panel(
+                "Die Pakete der Oberflaeche fehlen noch.\n\n"
+                "Bitte einmalig ausfuehren:\n"
+                "  [bold]cd frontend[/bold]\n"
+                f"  [bold]{npm_befehl()} install[/bold]\n"
+                "  [bold]cd ..[/bold]",
+                title="Noch ein Schritt fehlt",
+                border_style="yellow",
+            )
+        )
+        raise typer.Exit(code=1)
+
+    token = create_session_token(settings)
+    adresse = startadresse(settings, token, dev=True)
+
+    try:
+        vite = starte_vite(token, settings)
+    except FileNotFoundError:
+        err_console.print(
+            f"[red]{npm_befehl()} wurde nicht gefunden.[/red] "
+            "Ist Node.js installiert? https://nodejs.org"
+        )
+        raise typer.Exit(code=1) from None
+
+    console.print(
+        Panel(
+            f"Oeffne im Browser:\n  [bold cyan]{adresse}[/bold cyan]\n\n"
+            f"Server:      http://{settings.host}:{settings.port}\n"
+            f"Workspace:   {settings.workspace_path}\n\n"
+            "[yellow]Der Link enthaelt dein Sitzungs-Token - ohne ihn antwortet\n"
+            "Jarvis nicht. Nach jedem Neustart gibt es ein neues Token.[/yellow]\n\n"
+            "Beenden mit Strg+C.",
+            title="Jarvis laeuft",
+            border_style="green",
+        )
+    )
+
+    try:
+        _serve(settings, token)
+    finally:
+        vite.terminate()
+        try:
+            vite.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            vite.kill()
 
 
 if __name__ == "__main__":  # pragma: no cover
