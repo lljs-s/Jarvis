@@ -25,3 +25,17 @@ def filled_workspace(workspace: Workspace) -> Workspace:
     (workspace.root / "brief.md").write_text("# Brief\nHallo Welt\n", encoding="utf-8")
     (workspace.root / "bild.png").write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00binary")
     return workspace
+
+
+def symlink_or_skip(link: Path, ziel: Path, *, ordner: bool = False) -> None:
+    """Legt einen Symlink an - oder ueberspringt den Test.
+
+    Unter Windows darf ein normaler Nutzer nur dann Symlinks anlegen, wenn
+    der Entwicklermodus aktiv ist. Ohne diesen Helfer wuerden die
+    Symlink-Tests dort nicht "fehlschlagen", sondern nur nicht laufen -
+    und genau das sollen sie auch sagen.
+    """
+    try:
+        link.symlink_to(ziel, target_is_directory=ordner)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"Symlinks sind auf diesem System nicht erlaubt: {exc}")

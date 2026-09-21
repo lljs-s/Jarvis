@@ -9,8 +9,11 @@ import pytest
 from jarvis.errors import ToolError, WorkspaceViolation
 from jarvis.workspace import Workspace
 
+from conftest import symlink_or_skip
+
 # Jeder dieser Pfade MUSS abgelehnt werden.
 AUSBRUCHSVERSUCHE = [
+    "  datei.txt  ",   # Windows kuerzt Leerzeichen am Rand weg - wir lehnen ab
     "../geheim.txt",
     "../../etc/passwd",
     "notizen/../../draussen.txt",
@@ -42,7 +45,6 @@ def test_ausbruchsversuche_werden_abgelehnt(workspace: Workspace, pfad: str) -> 
         ("notizen/todo.txt", "notizen/todo.txt"),
         ("notizen\\todo.txt", "notizen/todo.txt"),  # Windows-Schreibweise
         ("a/./b/c.txt", "a/b/c.txt"),
-        ("  datei.txt  ", "datei.txt"),  # Leerzeichen aussen
         ("", "."),
         (".", "."),
     ],
@@ -58,7 +60,7 @@ def test_symlink_nach_draussen_wird_erkannt(workspace: Workspace, tmp_path: Path
     draussen = tmp_path / "draussen.txt"
     draussen.write_text("geheim", encoding="utf-8")
     link = workspace.root / "harmlos.txt"
-    link.symlink_to(draussen)
+    symlink_or_skip(link, draussen)
 
     with pytest.raises(WorkspaceViolation):
         workspace.resolve("harmlos.txt")
@@ -68,7 +70,7 @@ def test_symlink_ordner_nach_draussen_wird_erkannt(workspace: Workspace, tmp_pat
     ziel_ordner = tmp_path / "extern"
     ziel_ordner.mkdir()
     (ziel_ordner / "x.txt").write_text("geheim", encoding="utf-8")
-    (workspace.root / "ordner").symlink_to(ziel_ordner, target_is_directory=True)
+    symlink_or_skip(workspace.root / "ordner", ziel_ordner, ordner=True)
 
     with pytest.raises(WorkspaceViolation):
         workspace.resolve("ordner/x.txt")
