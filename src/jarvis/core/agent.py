@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from .errors import JarvisError, ToolError, WorkspaceViolation
+from ..errors import JarvisError, ToolError, WorkspaceViolation
 from .models.base import (
     AssistantMessage,
     Message,

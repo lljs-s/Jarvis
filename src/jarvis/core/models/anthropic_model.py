@@ -14,7 +14,7 @@ from typing import Any, cast
 import anthropic
 from anthropic.types import MessageParam, ToolParam
 
-from ..errors import ModelError
+from ...errors import ModelError
 from .base import (
     AssistantMessage,
     Message,

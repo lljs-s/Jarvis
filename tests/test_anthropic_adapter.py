@@ -7,8 +7,8 @@ Umwandlung von Nachrichten - der Teil, der bei jedem neuen Anbieter
 
 from __future__ import annotations
 
-from jarvis.models.anthropic_model import AnthropicModel
-from jarvis.models.base import (
+from jarvis.core.models.anthropic_model import AnthropicModel
+from jarvis.core.models.base import (
     AssistantMessage,
     ModelReply,
     ToolOutcome,

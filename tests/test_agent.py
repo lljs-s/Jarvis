@@ -11,12 +11,12 @@ from typing import Any, ClassVar
 
 import pytest
 
-from jarvis.agent import Agent, AgentEvent
+from jarvis.core.agent import Agent, AgentEvent
 from jarvis.errors import ToolError
-from jarvis.models.base import Message, ModelReply, ToolCall, Usage
-from jarvis.tools.base import RiskLevel, Tool, ToolResult
-from jarvis.tools.files import default_tools
-from jarvis.tools.registry import ToolRegistry
+from jarvis.core.models.base import Message, ModelReply, ToolCall, Usage
+from jarvis.core.tools.base import RiskLevel, Tool, ToolResult
+from jarvis.core.tools.files import default_tools
+from jarvis.core.tools.registry import ToolRegistry
 from jarvis.workspace import Workspace
 
 

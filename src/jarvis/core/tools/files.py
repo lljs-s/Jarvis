@@ -11,8 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, ClassVar
 
-from ..errors import ToolError
-from ..workspace import Workspace
+from ...errors import ToolError
+from ...workspace import Workspace
 from .base import RiskLevel, Tool, ToolResult
 
 # Wie viele Treffer bzw. Zeilen geben wir hoechstens zurueck? Ein Agent, der

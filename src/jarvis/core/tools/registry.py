@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any
 
-from ..errors import ToolError
+from ...errors import ToolError
 from .base import RiskLevel, Tool
 
 

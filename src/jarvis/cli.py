@@ -17,12 +17,12 @@ from rich.console import Console
 from rich.panel import Panel
 
 from . import __version__
-from .agent import Agent, AgentEvent
+from .core.agent import Agent, AgentEvent
 from .config import PROJECT_ROOT, Settings, load_settings
 from .errors import JarvisError
-from .models.anthropic_model import AnthropicModel
-from .tools.files import default_tools
-from .tools.registry import ToolRegistry
+from .core.models.anthropic_model import AnthropicModel
+from .core.tools.files import default_tools
+from .core.tools.registry import ToolRegistry
 from .workspace import Workspace
 
 app = typer.Typer(
