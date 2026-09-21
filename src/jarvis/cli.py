@@ -112,7 +112,7 @@ def doctor() -> None:
     tools = ToolRegistry(default_tools(Workspace.open(settings.workspace_path)))
     names = ", ".join(f"{t.name} ({t.risk.label})" for t in tools)
     console.print(f"  Werkzeuge       : {names}")
-    console.print("\n[dim]Nur-Lese-Betrieb: Schreiben und Ausfuehren kommen in Etappe 2.[/dim]")
+    console.print("\n[dim]Nur-Lese-Betrieb: Schreiben und Ausfuehren kommen in Etappe 4.[/dim]")
 
 
 @app.command()
@@ -218,8 +218,8 @@ def serve() -> None:
     `jarvis dev` gedacht.
     """
     from .server.security import create_session_token
+    from .server.start import pruefadresse
     from .server.start import serve as _serve
-    from .server.start import startadresse
 
     settings = load_settings()
     token = create_session_token(settings)
@@ -227,7 +227,7 @@ def serve() -> None:
         Panel(
             f"Server laeuft auf [bold]http://{settings.host}:{settings.port}[/bold]\n"
             f"Sitzungs-Token: [dim]{token}[/dim]\n\n"
-            f"Test im Browser:\n  {startadresse(settings, token, dev=False)}api/health\n\n"
+            f"Test im Browser:\n  {pruefadresse(settings, token)}\n\n"
             "[yellow]Ohne dieses Token antwortet der Server nicht.[/yellow]\n"
             "Beenden mit Strg+C.",
             title="Jarvis Server",

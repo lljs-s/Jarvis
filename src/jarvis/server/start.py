@@ -25,6 +25,11 @@ def startadresse(settings: Settings, token: str, *, dev: bool) -> str:
     return f"http://127.0.0.1:{port}/?token={token}"
 
 
+def pruefadresse(settings: Settings, token: str) -> str:
+    """Adresse zum Nachsehen, ob der Server antwortet."""
+    return f"http://127.0.0.1:{settings.port}/api/health?token={token}"
+
+
 def serve(settings: Settings | None = None, token: str | None = None) -> None:
     """Startet nur den Server (ohne Oberflaeche)."""
     import uvicorn
