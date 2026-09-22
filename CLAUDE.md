@@ -216,11 +216,19 @@ abgelehnt (ab Etappe 4: zur Bestaetigung vorgelegt).
   Anbieter). Die Anzeige rechnet mit `JARVIS_USD_TO_EUR` in EUR um.
 - **Betriebssystem:** entwickelt und betrieben wird unter **Windows**.
   Befehle in Doku und Skripten sind PowerShell-Befehle.
+- **Ab Session 3 laeuft die Entwicklung lokal auf dem Windows-PC des
+  Nutzers**, nicht mehr in einer Cloud-Session. Grund: nur dort laufen die
+  fuenf Tests, die echtes Windows brauchen (Junctions, Symlinks,
+  NTFS-Gross-/Kleinschreibung, verschiedene Laufwerke) - und genau die
+  schuetzen den Workspace. Laeuft eine Session doch einmal in der Cloud,
+  gilt: diese fuenf Tests sind dort NICHT bestaetigt, das muss im Ergebnis
+  ausdruecklich dastehen, und sie duerfen nie abgeschwaecht werden, nur
+  damit sie gruen sind.
 - **Tests zu jeder Etappe.** Neue Faehigkeit ohne Test = nicht fertig.
   Tests laufen ohne Netz und ohne API-Kosten (FakeModel bzw. Attrappen).
 - **Commits** klein und sprechend, auf dem vereinbarten Branch.
 
-## 5. Stand (nach Session 2)
+## 5. Stand (nach Session 3)
 
 Fertig: **Etappe 0** (Setup) und **Etappe 1** (Grundgeruest der Oberflaeche).
 
@@ -228,7 +236,8 @@ Fertig: **Etappe 0** (Setup) und **Etappe 1** (Grundgeruest der Oberflaeche).
 - lokaler Server mit Token-, Origin- und Host-Pruefung
 - React-Oberflaeche: drei Bereiche, Befehlspalette, konfigurierbare
   Tastenkuerzel, Slash-Befehle, hell/dunkel
-- **216 Tests** (159 Python + 57 Frontend), davon 5 nur unter Windows
+- **236 Tests** (175 Python + 61 Frontend), davon 5 nur unter Windows
+- Ein Stand: `main` und der Arbeitsbranch zeigen auf denselben Commit
 
 Details und naechste Schritte: `ROADMAP.md`.
 
