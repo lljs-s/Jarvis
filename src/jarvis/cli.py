@@ -11,6 +11,8 @@ Befehle:
 
 from __future__ import annotations
 
+import contextlib
+import signal
 import sys
 from typing import Annotated
 
@@ -218,10 +220,19 @@ def serve() -> None:
     `jarvis dev` gedacht.
     """
     from .server.security import create_session_token
-    from .server.start import pruefadresse
+    from .server.start import pruefadresse, pruefe_port_frei
     from .server.start import serve as _serve
 
     settings = load_settings()
+
+    # Erst pruefen, dann melden: sonst steht "Server laeuft" auf dem
+    # Bildschirm, obwohl der Start gleich scheitert.
+    try:
+        pruefe_port_frei(settings.host, settings.port)
+    except JarvisError as fehler:
+        err_console.print(Panel(str(fehler), title="Start nicht moeglich", border_style="red"))
+        raise typer.Exit(code=1) from None
+
     token = create_session_token(settings)
     console.print(
         Panel(
@@ -244,13 +255,29 @@ def dev() -> None:
     Zwei Prozesse: der Python-Server (Port 8765) und der Vite-Server, der
     die Oberflaeche ausliefert (Port 5173). Strg+C beendet beide.
     """
-    import subprocess
-
     from .server.security import create_session_token
-    from .server.start import frontend_ordner, npm_befehl, startadresse, starte_vite
+    from .server.start import (
+        beende_vite,
+        frontend_ordner,
+        npm_befehl,
+        pruefe_port_frei,
+        startadresse,
+        starte_vite,
+    )
     from .server.start import serve as _serve
 
     settings = load_settings()
+
+    # Beide Ports pruefen, bevor irgendetwas startet - sonst bleibt bei
+    # einem Fehlschlag ein halb gestarteter Vite-Prozess zurueck.
+    for port, wofuer in ((settings.port, "Server"), (settings.ui_dev_port, "Oberflaeche")):
+        try:
+            pruefe_port_frei(settings.host, port)
+        except JarvisError as fehler:
+            err_console.print(
+                Panel(f"{wofuer}: {fehler}", title="Start nicht moeglich", border_style="red")
+            )
+            raise typer.Exit(code=1) from None
 
     if not (frontend_ordner() / "node_modules").is_dir():
         err_console.print(
@@ -291,14 +318,22 @@ def dev() -> None:
         )
     )
 
+    # Auch bei einem harten Beenden (geschlossenes Terminal, "taskkill")
+    # soll Vite mitgehen. Strg+C loest ohnehin KeyboardInterrupt aus, aber
+    # ein SIGTERM wuerde Python ohne das hier einfach abschiessen - und
+    # Vite bliebe als unsichtbarer Prozess auf Port 5173 zurueck.
+    def _beenden(signalnummer: int, rahmen: object) -> None:
+        raise KeyboardInterrupt
+
+    with contextlib.suppress(ValueError, AttributeError, OSError):
+        signal.signal(signal.SIGTERM, _beenden)
+
     try:
         _serve(settings, token)
+    except KeyboardInterrupt:
+        console.print("\n[dim]Beende Jarvis ...[/dim]")
     finally:
-        vite.terminate()
-        try:
-            vite.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            vite.kill()
+        beende_vite(vite)
 
 
 if __name__ == "__main__":  # pragma: no cover
