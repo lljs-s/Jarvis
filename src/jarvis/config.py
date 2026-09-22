@@ -120,6 +120,21 @@ class Settings(BaseSettings):
     cost_limit_usd_task: float = Field(default=0.50, gt=0, alias="JARVIS_COST_LIMIT_USD_TASK")
     cost_limit_usd_day: float = Field(default=2.00, gt=0, alias="JARVIS_COST_LIMIT_USD_DAY")
 
+    @field_validator("anthropic_api_key", "gemini_api_key", mode="before")
+    @classmethod
+    def _leer_ist_kein_schluessel(cls, wert: object) -> object:
+        """Ein leerer Eintrag in der .env ist KEIN Schluessel.
+
+        Die .env.example enthaelt "GEMINI_API_KEY=" ohne Wert. Ohne diese
+        Pruefung wuerde daraus SecretStr("") - also ein Objekt, das "es gibt
+        einen Schluessel" bedeutet. Die Oberflaeche haette dann gemeldet,
+        der Schluessel sei vorhanden, und der erste Modellaufruf waere mit
+        einer unverstaendlichen Fehlermeldung der API gescheitert.
+        """
+        if isinstance(wert, str) and not wert.strip():
+            return None
+        return wert
+
     @field_validator("host")
     @classmethod
     def _nur_lokal(cls, wert: str) -> str:

@@ -91,3 +91,28 @@ def test_kosten_werden_in_usd_gezaehlt_und_in_eur_angezeigt(
     assert settings.usd_to_eur == 0.90
     assert settings.eur(1.00) == 0.90
     assert settings.eur(0.1234) == 0.1111
+
+
+def test_leerer_schluessel_in_der_env_zaehlt_als_fehlend(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Die .env.example enthaelt leere Eintraege - die duerfen nicht zaehlen.
+
+    Sonst meldet die Oberflaeche "Schluessel vorhanden", und der erste
+    Modellaufruf scheitert mit einer Fehlermeldung der API, die dem Nutzer
+    nichts sagt.
+    """
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "")
+    monkeypatch.setenv("GEMINI_API_KEY", "   ")
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.anthropic_api_key is None
+    assert settings.gemini_api_key is None
+    with pytest.raises(ConfigError, match="ANTHROPIC_API_KEY"):
+        settings.require_api_key()
+
+
+def test_echter_schluessel_bleibt_erhalten(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-echt")
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.anthropic_api_key is not None
+    assert settings.require_api_key() == "sk-ant-echt"
