@@ -76,7 +76,8 @@ def serve(settings: Settings | None = None, token: str | None = None) -> None:
     pruefe_port_frei(settings.host, settings.port)
     angelegt = richte_workspace_ein(settings)
     if angelegt:
-        print(f"Workspace eingerichtet - neue Bereiche: {', '.join(angelegt)}")  # noqa: T201
+        # flush: sonst bleibt die Zeile im Puffer haengen, bis uvicorn etwas schreibt.
+        print(f"Workspace eingerichtet - neue Bereiche: {', '.join(angelegt)}", flush=True)  # noqa: T201
     token = token or create_session_token(settings)
     # Das Token an die App weiterreichen, ohne es auf die Kommandozeile zu
     # schreiben - dort koennten es andere Prozesse mitlesen.

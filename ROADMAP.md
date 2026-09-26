@@ -51,25 +51,29 @@ Legende: `[x]` fertig · `[ ]` offen · `( )` bewusst spaeter
 **Bewusst ausgeklammert:** Jarvis antwortet noch mit einem Platzhalter -
 es ist kein Modell angeschlossen.
 
-## Etappe 2 - Modulsystem [ ]
+## Etappe 2 - Modulsystem [ ] (gebaut, wartet auf deinen Test)
 
 Datenmodell: siehe `CLAUDE.md`, Abschnitt 5.
 
-- [ ] Doku: Datenmodell, Schema-Versionen, Trading-Regel
-- [ ] Kern: Datenschutzstufen `offen` < `vertraulich` < `lokal`,
+- [x] Doku: Datenmodell, Schema-Versionen, Trading-Regel
+- [x] Kern: Datenschutzstufen `offen` < `vertraulich` < `lokal`,
       `folder.json` / `module.json` / Typ-Definitionen lesen,
       Modulbaum aus `<Workspace>\bereiche\` mit Vererbung
-- [ ] Kern: Bereiche und Module anlegen, umbenennen, verschieben
+- [x] Kern: Bereiche und Module anlegen, umbenennen, verschieben
       (mit `datenschutz_grund`), Stufe setzen und bewusst senken
-- [ ] Schranken: Werkzeuge duerfen `folder.json`/`module.json`/`.jarvis`
+- [x] Schranken: Werkzeuge duerfen `folder.json`/`module.json`/`.jarvis`
       nie schreiben; Lese-Werkzeuge zeigen Cloud-Modellen nur `offen`
-- [ ] Server: REST-Endpunkte fuer Baum, Typen und alle Aenderungen
-- [ ] Demo "Beispiel" (Repo + echter Workspace), im echten Workspace
+- [x] Server: REST-Endpunkte fuer Baum, Typen und alle Aenderungen
+- [x] Demo "Beispiel" (Repo + echter Workspace), im echten Workspace
       zusaetzlich "Unternehmen" und "Trading" als `vertraulich`
-- [ ] Oberflaeche: "+" (Neuer Ordner / Neues Modul mit Typauswahl), F2,
+- [x] Oberflaeche: "+" (Neuer Ordner / Neues Modul mit Typauswahl), F2,
       Drag & Drop, Verschieben per Tastatur, Datenschutz mit Herkunft
-- [ ] Start-Typen: Notizen, Recherche, Aufgaben, Dateien
-- [ ] Tests fuer jede Schranke
+- [x] Start-Typen: Notizen, Recherche, Aufgaben, Dateien
+- [x] Tests fuer jede Schranke (432 gesamt: 350 Python + 82 Frontend)
+- [ ] **Du probierst es selbst aus** - danach ist die Etappe fertig
+- [ ] Offen: Widgets zeigen die Modulinhalte an (Notizliste, Editor,
+      Aufgabenliste, Dateiliste). Das Widget-Register im Kern steht, die
+      Anzeige in der Oberflaeche fehlt noch - vor oder mit Etappe 3 klaeren
 
 ## Etappe 3 - Erste KI-Anbindung [ ]
 

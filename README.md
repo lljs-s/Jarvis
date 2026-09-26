@@ -3,9 +3,10 @@
 Eine lokale KI-Zentrale fuer Windows: ein Chat in der Mitte, Module links,
 Agents rechts. Laeuft ausschliesslich auf deinem Rechner.
 
-**Stand: Etappe 1 von 8.** Die Oberflaeche steht, der Server ist abgesichert -
+**Stand: Etappe 2 von 8.** Die Oberflaeche steht, der Server ist abgesichert,
+das Modulsystem arbeitet mit echten Ordnern und Datenschutzstufen -
 **aber es ist noch kein KI-Modell angeschlossen.** Jarvis antwortet mit einem
-Platzhalter. Das echte Modell (Gemini) kommt in Etappe 3.
+Platzhalter. Das echte Modell kommt in Etappe 3.
 
 ---
 
@@ -75,6 +76,19 @@ Beenden mit **Strg+C** im Terminal.
 Im Chat funktionieren `/hilfe`, `/opus`, `/agent`, `/modul`.
 Tippe `/` und du siehst alle Befehle.
 
+### Modulbaum (links)
+
+| Aktion | Maus | Tastatur |
+|---|---|---|
+| Neuer Ordner / neues Modul | `+` oben rechts | `Tab` bis zum `+`, `Enter`, Pfeiltasten, `Enter` |
+| Umbenennen | – | Eintrag markieren, `F2`, Name, `Enter` (`Escape` bricht ab) |
+| Verschieben | Eintrag auf einen Bereich ziehen (auf leere Flaeche = ganz nach oben) | `Strg+X` auf dem Eintrag, `Strg+V` auf dem Zielbereich |
+| Datenschutz ansehen/aendern | Eintrag anklicken, unten "Stufe aendern" | Eintrag mit `Enter` waehlen, `Tab` bis zur Auswahl |
+
+Stufen: ohne Zeichen = **offen**, 🔒 = **vertraulich**, 🏠 = **lokal**.
+Nach unten wird es nur strenger. Verschiebst du etwas in einen lockereren
+Bereich, behaelt es seine Stufe - der Grund steht dann in den Eigenschaften.
+
 ## Wenn etwas nicht klappt
 
 | Problem | Ursache und Loesung |
@@ -101,6 +115,10 @@ Dateien nie versehentlich in einem Commit landen. Ohne diese Zeile nimmt Jarvis
 > `node_modules`), Workspace, die Caches von pip und npm (`D:\Caches`) und
 > die temporaeren Dateien (`TEMP`/`TMP` = `D:\Temp`).
 
+Der Modulbaum steht darin unter `bereiche\` - ganz normale Ordner mit einer
+`folder.json` (Bereich) oder `module.json` (Modul). Beim ersten Start legt
+Jarvis ein **Beispiel** sowie **Unternehmen** und **Trading** (vertraulich) an.
+
 Im Projekt liegt nur `test-workspace/` mit Dummy-Dateien zum Ausprobieren.
 
 **Jarvis kommt aus diesem Ordner nicht heraus.** Jeder Pfad laeuft durch den
@@ -110,8 +128,8 @@ gezielt, ihn auszutricksen.
 ## Tests
 
 ```powershell
-pytest                          # Python: 175 Tests
-cd frontend; npm test; cd ..    # Oberflaeche: 61 Tests
+pytest                          # Python: 350 Tests
+cd frontend; npm test; cd ..    # Oberflaeche: 82 Tests
 mypy src; ruff check src tests  # Typen und Stil
 ```
 
@@ -119,5 +137,5 @@ Alle Tests laufen **ohne Internet und ohne API-Kosten**.
 
 ## Wie es weitergeht
 
-Siehe `ROADMAP.md`. Als Naechstes: Etappe 2, das Modulsystem.
+Siehe `ROADMAP.md`. Als Naechstes: Etappe 3, die erste KI-Anbindung.
 Technische Entscheidungen und Regeln stehen in `CLAUDE.md`.

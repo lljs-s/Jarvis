@@ -61,12 +61,17 @@ daran vorbei.
 ```
 src/jarvis/
   config.py       Einstellungen aus .env (pydantic-settings, typisiert)
-  errors.py       JarvisError, ConfigError, WorkspaceViolation, ToolError, ModelError
+  errors.py       JarvisError, ConfigError, WorkspaceViolation (+ DatenschutzVerstoss),
+                  ModulFehler, ToolError, ModelError
   workspace.py    Der Waechter. Einzige Stelle, die Pfade aufloest.
   core/
     agent.py      Die Schleife: Modell fragen -> Werkzeuge -> wiederholen
     models/       base.py (neutrale Typen), anthropic_model.py
-    tools/        base.py (Tool, RiskLevel), registry.py, files.py
+    tools/        base.py (Tool, RiskLevel, KERN_WERKZEUGE), registry.py, files.py
+    safety/       datenschutz.py (Stufen, strengste, darf_fliessen)
+    modules/      formate.py (folder/module.json), typen.py + typen/*.json,
+                  baum.py (lesen + vererben), dienst.py (EINZIGE Schreibstelle),
+                  zugriff.py (Schreibsperre, Datenschutz-Filter), demo.py
   server/
     app.py        FastAPI-App, Schichten: CORS -> Tuersteher -> Routen
     security.py   Token, Origin- und Host-Pruefung
@@ -79,10 +84,12 @@ frontend/
   src/lib/        api.ts, token.ts, chatVerbindung.ts, shortcuts.ts, slash.ts
   src/store/      store.ts (zustand)
   src/components/ Panel, Dialog, CommandPalette, StatusBar
-  src/features/   chat/, agents/, modules/, settings/
+  src/features/   chat/, agents/, modules/ (Sidebar, AnlegenDialog,
+                  Eigenschaften, baumhilfen, aenderung), settings/
   src/app/App.tsx Hauptfenster
+  src/test-daten.ts  Baukasten fuer KnotenInfo in Tests
 tests/            pytest; Schwerpunkt Sandbox- und Server-Angriffe
-test-workspace/   Dummy-Dateien zum Ausprobieren (gehoert ins Repo)
+test-workspace/   Dummy-Dateien + Demo unter bereiche/ (gehoert ins Repo)
 ```
 
 ### Warum dieser Stack
@@ -201,92 +208,6 @@ abgelehnt (ab Etappe 4: zur Bestaetigung vorgelegt).
   weder Werkzeug noch Schnittstelle, und ein Modultyp kann keine Werkzeuge
   anfordern, die der Kern nicht selbst mitbringt.
 
-## 5. Datenmodell: Bereiche und Module (ab Etappe 2)
-
-Alles liegt als normale Ordner und JSON-Dateien im Workspace - keine
-versteckte Datenbank.
-
-```
-<Workspace>\
-  bereiche\                  Wurzel des Modulbaums
-    folder.json              Grundeinstellungen der Wurzel (Stufe: offen)
-    Schule\                  Bereich  = Ordner MIT folder.json
-      folder.json
-      Mathe\                 Modul    = Ordner MIT module.json (ein Blatt)
-        module.json
-        notizen\...          Daten des Moduls
-  .jarvis\                   Systemdaten (spaeter: eigene Typen, Auftraege)
-src\jarvis\core\modules\typen\*.json   eingebaute Modultypen
-```
-
-- **Bereich** = Ordner mit `folder.json`, beliebig tief verschachtelt.
-  **Modul** = "ein Typ an einem Ort": Ordner mit `module.json`, enthaelt
-  nur Daten (keine weiteren Bereiche/Module). Beides zugleich = Fehler.
-  Unterordner eines Bereichs ohne JSON werden ignoriert (mit Warnung).
-- **Modultypen** sind reine Beschreibungen (Widgets, Startordner,
-  Einstellungen, erlaubte Werkzeuge, Mindeststufe) und liegen getrennt von
-  den Modulen. Neuer Typ = neue JSON-Datei, kein Umbau des Kerns. Den Code
-  der Widgets liefert das Widget-Register im Kern.
-- **IDs statt Pfade:** Jeder Bereich und jedes Modul hat eine feste,
-  zufaellige `id` (`ord_...`, `mod_...`). Umbenennen/Verschieben aendert
-  sie nie. Verweise (Auftraege, spaeter Layouts) nutzen nur die `id`.
-  Doppelte ids (z. B. im Explorer kopiert) werden repariert: das zweite
-  Exemplar bekommt eine neue.
-- **Anzeigename = Ordnername**, geprueft vom Waechter.
-
-### 5.1 Datenschutzstufen
-
-| Stufe | Rang | Wer darf die Daten sehen? |
-|---|---|---|
-| `offen` | 0 | alle Modelle, auch Cloud |
-| `vertraulich` | 1 | Cloud nur nach Freigabe pro Aufgabe. Die Freigabe zeigt **konkret**, was hinausgeht (Modul, Dateien, Umfang), nicht nur "Cloud ja/nein" (Etappe 4) |
-| `lokal` | 2 | nur Ollama; solange Ollama fehlt: **kein Modell** |
-
-Bis das Freigabe-Gate existiert, sehen Cloud-Modelle **nur `offen`** - die
-Lese-Werkzeuge verweigern alles Strengere.
-
-- **Vererbung:** Symbol, Farbe, Standard-Agents, Layout: der naechste
-  gesetzte Wert gewinnt (`null`/fehlend = erben). **Datenschutz: immer das
-  Strengste** aus Bereichskette, eigener Stufe und Mindeststufe des Typs.
-  Lockern nach unten ist damit unmoeglich; der Kern verweigert ausserdem das
-  Speichern einer Stufe unter der geerbten.
-- **Verschieben:** Wird ein Modul/Bereich in einen lockereren Bereich
-  verschoben, schreibt der Kern die bisherige Stufe fest (`datenschutz`)
-  und dazu `datenschutz_grund` (art, text, datum), z. B. "festgeschrieben
-  beim Verschieben aus Unternehmen am 26.09.2026". Die Oberflaeche zeigt
-  den Grund an und warnt. In einen strengeren Bereich: die Stufe steigt von
-  selbst. Bewusstes Senken ist moeglich bis zur geerbten Stufe; wird dadurch
-  irgendetwas lockerer, braucht es eine ausdrueckliche Bestaetigung.
-- **Im Zweifel `lokal`:** Kaputte oder unlesbare JSON-Dateien, beide Dateien
-  in einem Ordner, fehlendes oder unbekanntes `schema` - der Knoten wird als
-  fehlerhaft angezeigt und zaehlt als `lokal` (Kinder erben das).
-- **Schreibsperre:** `folder.json`, `module.json` und alles unter `.jarvis\`
-  duerfen Werkzeuge (also Agents) nie schreiben - nur der Modul-Dienst im
-  Kern. Sonst koennte ein Agent seine eigene Datenschutzstufe senken.
-
-### 5.2 Schema-Versionen
-
-Jede JSON-Datei traegt `"schema": <Zahl>` (derzeit 1).
-- **Hoehere Nummer als bekannt:** nicht raten. Knoten = fehlerhaft, zaehlt
-  als `lokal`, der Nutzer bekommt eine klare Meldung ("Datei ist neuer als
-  dieses Jarvis"). Jarvis **schreibt eine solche Datei nie** (sonst gingen
-  Felder der neueren Version verloren).
-- **Fehlende oder ungueltige Nummer:** ebenso fehlerhaft und `lokal`.
-- **Aeltere Nummer:** wird beim Lesen umgewandelt, sobald es eine gibt
-  (Migration im Kern, mit Test).
-- Unbekannte Zusatzfelder derselben Version bleiben beim Schreiben erhalten.
-
-### 5.3 Abteilungen und Auftraege (Datenmodell jetzt, Umsetzung Etappe 6)
-
-Ein Modul mit `"abteilung": {"beschreibung", "auftragsarten"}` nimmt
-Auftraege an. Ein Auftrag liegt in `.jarvis\auftraege\<id>.json` mit `von`,
-`an` (ids), `stufe`, `status`, `auftrag`, `ergebnis`.
-**Feste Regel: Daten fliessen nie von einer hoeheren in eine niedrigere
-Stufe.** Das Etikett `stufe` eines Auftrags ist das Strengste aller
-eingeflossenen Daten; Daten duerfen nur zu Empfaengern mit mindestens dieser
-Stufe. Eine Abteilung arbeitet fuer einen strengeren Auftraggeber unter
-dessen Regeln und behaelt nichts vom Auftrag bei sich.
-
 ## 4. Konventionen
 
 - **Python >= 3.11**, `from __future__ import annotations` in jeder Datei,
@@ -349,23 +270,124 @@ dessen Regeln und behaelt nichts vom Auftrag bei sich.
   (`origin`, https://github.com/lljs-s/Jarvis) - die Sicherung ausserhalb
   des PCs. Nie force-pushen.
 
-## 6. Stand (nach Session 3)
+## 5. Datenmodell: Bereiche und Module (ab Etappe 2)
 
-Fertig: **Etappe 0** (Setup) und **Etappe 1** (Grundgeruest der Oberflaeche).
+Alles liegt als normale Ordner und JSON-Dateien im Workspace - keine
+versteckte Datenbank.
 
-- Kern nach `core/` umgezogen, Waechter fuer Windows gehaertet
-- lokaler Server mit Token-, Origin- und Host-Pruefung
-- React-Oberflaeche: drei Bereiche, Befehlspalette, konfigurierbare
-  Tastenkuerzel, Slash-Befehle, hell/dunkel
-- **236 Tests** (175 Python + 61 Frontend), davon 5 nur unter Windows -
-  seit Session 4 alle auf echtem Windows bestaetigt
+```
+<Workspace>\
+  bereiche\                  Wurzel des Modulbaums
+    folder.json              Grundeinstellungen der Wurzel (Stufe: offen)
+    Schule\                  Bereich  = Ordner MIT folder.json
+      folder.json
+      Mathe\                 Modul    = Ordner MIT module.json (ein Blatt)
+        module.json
+        notizen\...          Daten des Moduls
+  .jarvis\                   Systemdaten (spaeter: eigene Typen, Auftraege)
+src\jarvis\core\modules\typen\*.json   eingebaute Modultypen
+```
+
+- **Bereich** = Ordner mit `folder.json`, beliebig tief verschachtelt.
+  **Modul** = "ein Typ an einem Ort": Ordner mit `module.json`, enthaelt
+  nur Daten (keine weiteren Bereiche/Module). Beides zugleich = Fehler.
+  Unterordner eines Bereichs ohne JSON werden ignoriert (mit Warnung).
+- **Modultypen** sind reine Beschreibungen (Widgets, Startordner,
+  Einstellungen, erlaubte Werkzeuge, Mindeststufe) und liegen getrennt von
+  den Modulen. Neuer Typ = neue JSON-Datei, kein Umbau des Kerns. Den Code
+  der Widgets liefert das Widget-Register im Kern.
+- **IDs statt Pfade:** Jeder Bereich und jedes Modul hat eine feste,
+  zufaellige `id` (`ord_...`, `mod_...`). Umbenennen/Verschieben aendert
+  sie nie. Verweise (Auftraege, spaeter Layouts) nutzen nur die `id`.
+  Doppelte ids (z. B. im Explorer kopiert) werden repariert: das zweite
+  Exemplar bekommt eine neue.
+- **Anzeigename = Ordnername**, geprueft vom Waechter.
+
+### 5.1 Datenschutzstufen
+
+| Stufe | Rang | Wer darf die Daten sehen? |
+|---|---|---|
+| `offen` | 0 | alle Modelle, auch Cloud |
+| `vertraulich` | 1 | Cloud nur nach Freigabe pro Aufgabe. Die Freigabe zeigt **konkret**, was hinausgeht (Modul, Dateien, Umfang), nicht nur "Cloud ja/nein" (Etappe 4) |
+| `lokal` | 2 | nur Ollama; solange Ollama fehlt: **kein Modell** |
+
+Bis das Freigabe-Gate existiert, sehen Cloud-Modelle **nur `offen`** - die
+Lese-Werkzeuge verweigern alles Strengere.
+
+- **Vererbung:** Symbol, Farbe, Standard-Agents, Layout: der naechste
+  gesetzte Wert gewinnt (`null`/fehlend = erben). Ausnahme Symbol bei
+  Modulen: eigenes Symbol, sonst das des Typs (man sieht den Typ auf einen
+  Blick). **Datenschutz: immer das
+  Strengste** aus Bereichskette, eigener Stufe und Mindeststufe des Typs.
+  Lockern nach unten ist damit unmoeglich; der Kern verweigert ausserdem das
+  Speichern einer Stufe unter der geerbten.
+- **Verschieben:** Wird ein Modul/Bereich in einen lockereren Bereich
+  verschoben, schreibt der Kern die bisherige Stufe fest (`datenschutz`)
+  und dazu `datenschutz_grund` (art, text, datum), z. B. "festgeschrieben
+  beim Verschieben aus Unternehmen am 26.09.2026". Die Oberflaeche zeigt
+  den Grund an und warnt. In einen strengeren Bereich: die Stufe steigt von
+  selbst. Bewusstes Senken ist moeglich bis zur geerbten Stufe; wird dadurch
+  irgendetwas lockerer, braucht es eine ausdrueckliche Bestaetigung.
+- **Im Zweifel `lokal`:** Kaputte oder unlesbare JSON-Dateien, beide Dateien
+  in einem Ordner, fehlendes oder unbekanntes `schema` - der Knoten wird als
+  fehlerhaft angezeigt und zaehlt als `lokal` (Kinder erben das).
+- **Schreibsperre:** `folder.json`, `module.json` und alles unter `.jarvis\`
+  duerfen Werkzeuge (also Agents) nie schreiben - nur der Modul-Dienst im
+  Kern. Sonst koennte ein Agent seine eigene Datenschutzstufe senken.
+
+### 5.2 Schema-Versionen
+
+Jede JSON-Datei traegt `"schema": <Zahl>` (derzeit 1).
+- **Hoehere Nummer als bekannt:** nicht raten. Knoten = fehlerhaft, zaehlt
+  als `lokal`, der Nutzer bekommt eine klare Meldung ("Datei ist neuer als
+  dieses Jarvis"). Jarvis **schreibt eine solche Datei nie** (sonst gingen
+  Felder der neueren Version verloren).
+- **Fehlende oder ungueltige Nummer:** ebenso fehlerhaft und `lokal`.
+- **Aeltere Nummer:** wird beim Lesen umgewandelt, sobald es eine gibt
+  (Migration im Kern, mit Test).
+- Unbekannte Zusatzfelder derselben Version bleiben beim Schreiben erhalten.
+
+### 5.3 Abteilungen und Auftraege (Datenmodell jetzt, Umsetzung Etappe 6)
+
+Ein Modul mit `"abteilung": {"beschreibung", "auftragsarten"}` nimmt
+Auftraege an. Ein Auftrag liegt in `.jarvis\auftraege\<id>.json` mit `von`,
+`an` (ids), `stufe`, `status`, `auftrag`, `ergebnis`.
+**Feste Regel: Daten fliessen nie von einer hoeheren in eine niedrigere
+Stufe.** Das Etikett `stufe` eines Auftrags ist das Strengste aller
+eingeflossenen Daten; Daten duerfen nur zu Empfaengern mit mindestens dieser
+Stufe. Eine Abteilung arbeitet fuer einen strengeren Auftraggeber unter
+dessen Regeln und behaelt nichts vom Auftrag bei sich.
+
+## 6. Stand (nach Session 4)
+
+Fertig: **Etappe 0** (Setup), **Etappe 1** (Grundgeruest der Oberflaeche).
+**Etappe 2** (Modulsystem) ist gebaut und getestet - gilt als fertig, sobald
+der Nutzer sie selbst ausprobiert hat.
+
+- Session 4: erstmals lokal auf Windows; alle Windows-Tests echt bestaetigt
+- Modulsystem nach Abschnitt 5: Bereiche, Module, 4 Start-Typen, Vererbung,
+  Datenschutzstufen im Kern erzwungen, Schreibsperre fuer Verwaltungsdateien,
+  Lese-Werkzeuge zeigen Cloud-Modellen nur `offen`
+- Oberflaeche: "+", F2, Strg+X/Strg+V, Ziehen & Ablegen, Eigenschaften mit
+  Herkunft und Grund der Stufe, Senken nur mit Bestaetigung
+- Echter Workspace eingerichtet: Beispiel, Unternehmen + Trading (vertraulich)
+- **432 Tests** (350 Python + 82 Frontend). Nur unter Windows laufen die 5
+  Waechter-Tests plus 3 neue (Junction im Baum, Junction nach .jarvis,
+  8.3-Kurzname). Der 8.3-Test ueberspringt sich auf D:, weil dort keine
+  Kurznamen erzeugt werden (`fsutil 8dot3name query D:` -> deaktiviert) -
+  der Umweg existiert dort also nicht. Auf C: waere er aktiv; dort wurde
+  bewusst nicht getestet (Speicherplatz, Absprache).
 - Gearbeitet wird ab Session 4 auf `main`
+- **Commit-Nachrichten** unter PowerShell 5.1 ueber eine Datei
+  (`git commit -F datei`): Anfuehrungszeichen in `-m "..."` zerlegt
+  PowerShell 5.1 beim Weitergeben an git.
 
 Details und naechste Schritte: `ROADMAP.md`.
 
-**Bewusst noch nicht da:** Modulsystem mit echten Ordnern, KI-Anbindung
-(Gemini), Approval-Gate mit Diff, Logbuch, Kostenzaehler, Opus-Eskalation,
-Ollama, echte Agents, andockbare Panels, Tauri-Paketierung.
+**Bewusst noch nicht da:** Inhalte der Module (Widgets zeigen noch nichts),
+KI in der Oberflaeche, Approval-Gate mit Diff, Logbuch, Kostenzaehler,
+Opus-Eskalation, Ollama, echte Agents und Abteilungen, andockbare Panels,
+Tauri-Paketierung.
 
 ## 7. Befehle (PowerShell)
 
