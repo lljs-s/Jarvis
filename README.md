@@ -91,9 +91,15 @@ Tippe `/` und du siehst alle Befehle.
 
 ## Wo liegen meine Daten?
 
-Im Ordner **`Dokumente\Jarvis-Workspace`** - also ausserhalb dieses
-Projektordners, damit deine Dateien nie versehentlich in einem Commit landen.
-Aendern kannst du das in der `.env` (`JARVIS_WORKSPACE_DIR`).
+Im Ordner **`D:\Jarvis-Workspace`** (eingestellt in der `.env` mit
+`JARVIS_WORKSPACE_DIR`) - also ausserhalb dieses Projektordners, damit deine
+Dateien nie versehentlich in einem Commit landen. Ohne diese Zeile nimmt Jarvis
+`Dokumente\Jarvis-Workspace`.
+
+> **Speicherplatz:** Laufwerk C: ist fast voll. Alles, was Platz braucht,
+> liegt auf D: - Projekt (`D:\Projekte\Jarvis`, mit `.venv` und
+> `node_modules`), Workspace, die Caches von pip und npm (`D:\Caches`) und
+> die temporaeren Dateien (`TEMP`/`TMP` = `D:\Temp`).
 
 Im Projekt liegt nur `test-workspace/` mit Dummy-Dateien zum Ausprobieren.
 
@@ -104,8 +110,8 @@ gezielt, ihn auszutricksen.
 ## Tests
 
 ```powershell
-pytest                          # Python: 159 Tests
-cd frontend; npm test; cd ..    # Oberflaeche: 57 Tests
+pytest                          # Python: 175 Tests
+cd frontend; npm test; cd ..    # Oberflaeche: 61 Tests
 mypy src; ruff check src tests  # Typen und Stil
 ```
 

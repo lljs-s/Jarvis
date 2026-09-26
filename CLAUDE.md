@@ -48,7 +48,7 @@ weiterbauen.
 |  workspace.py   DER WAECHTER - einzige Tuer zum Dateisystem    |
 +---------------------------------------------------------------+
         |
-   Dokumente\Jarvis-Workspace   (ausserhalb des Projekts!)
+   D:\Jarvis-Workspace   (ausserhalb des Projekts!)
 ```
 
 Zwei Tore, durch die **alles** muss: der **Workspace-Waechter** (kein Pfad
@@ -167,7 +167,9 @@ Absender **abgewiesen** wird - nicht nur, dass der eigene durchkommt.
 ### 3.4 Wo die Daten liegen (feste Regel)
 
 - Der **echte Workspace liegt ausserhalb des Projektordners**.
-  Standard: `Dokumente\Jarvis-Workspace`, unter Windows ueber
+  Auf dem Rechner des Nutzers: `D:\Jarvis-Workspace` (per
+  `JARVIS_WORKSPACE_DIR` in der `.env`, weil C: fast voll ist).
+  Standard ohne Angabe: `Dokumente\Jarvis-Workspace`, unter Windows ueber
   `SHGetKnownFolderPath` ermittelt (wichtig, falls "Dokumente" nach OneDrive
   umgeleitet ist). Umstellbar mit `JARVIS_WORKSPACE_DIR` in der `.env`.
 - Im Projekt liegt **nur** `test-workspace/` mit Dummy-Dateien.
@@ -224,6 +226,30 @@ abgelehnt (ab Etappe 4: zur Bestaetigung vorgelegt).
   gilt: diese fuenf Tests sind dort NICHT bestaetigt, das muss im Ergebnis
   ausdruecklich dastehen, und sie duerfen nie abgeschwaecht werden, nur
   damit sie gruen sind.
+- **Stand der Windows-Tests (Session 4, 2026-09-26, Windows 10 Pro 19045,
+  Python 3.14, NTFS auf D:):**
+  - echt bestaetigt: `test_gross_kleinschreibung_findet_dieselbe_datei`,
+    `test_verschiedene_laufwerke_sind_nie_enthalten`,
+    `test_junction_nach_draussen_wird_erkannt`,
+    `test_junction_innerhalb_bleibt_erlaubt`
+  - **noch NICHT bestaetigt:** `test_dateisymlink_nach_draussen_wird_erkannt`
+    sowie die zwei Symlink-Tests in `test_workspace.py` - uebersprungen mit
+    `WinError 1314` (dem Benutzer fehlt das Recht, Symlinks anzulegen; der
+    Registry-Wert `AllowDevelopmentWithoutDevLicense` fuer den
+    Entwicklermodus war nicht gesetzt). Kein Codefehler gefunden. Sobald
+    der Entwicklermodus wirklich aktiv ist: erneut laufen lassen und hier
+    nachtragen.
+- **Speicherplatz:** C: ist fast voll. Projekt, `.venv`, `node_modules`,
+  Workspace (`D:\Jarvis-Workspace`), Caches (`D:\Caches`) und TEMP
+  (`D:\Temp`) liegen auf D:. Neues, das Platz braucht, ebenfalls nach D:.
+  Alles, was C: zusaetzlich belastet (Installationen, globale Pakete,
+  Caches ohne Umleitung, Tools mit Daten unter `%USERPROFILE%` oder
+  `%LOCALAPPDATA%`), wird dem Nutzer **vorher** angekuendigt.
+- **Python 3.14:** Die venv laeuft mit Python 3.14 - sehr neu. Wenn ein
+  Paket damit nicht funktioniert (fehlende Wheels, Build-Fehler,
+  Inkompatibilitaet), **sofort dem Nutzer melden** und gemeinsam
+  entscheiden - **keine Notloesung** (kein Pinnen auf Uraltversionen, kein
+  Umgehen, kein stilles Weglassen).
 - **Tests zu jeder Etappe.** Neue Faehigkeit ohne Test = nicht fertig.
   Tests laufen ohne Netz und ohne API-Kosten (FakeModel bzw. Attrappen).
 - **Commits** klein und sprechend, auf dem vereinbarten Branch.

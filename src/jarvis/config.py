@@ -9,6 +9,7 @@ landen.
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 from pydantic import Field, SecretStr, field_validator
@@ -32,7 +33,8 @@ def documents_dir() -> Path:
     wichtig, weil "Dokumente" umgeleitet sein kann - etwa nach OneDrive.
     Ein festes "%USERPROFILE%\\Documents" laege dann daneben.
     """
-    if os.name == "nt":
+    # sys.platform statt os.name: das erkennt mypy als Plattform-Weiche.
+    if sys.platform == "win32":
         try:
             import ctypes
             import ctypes.wintypes
@@ -53,12 +55,12 @@ def documents_dir() -> Path:
                 (ctypes.c_ubyte * 8)(0xAD, 0xB4, 0x6C, 0x85, 0x48, 0x03, 0x69, 0xC7),
             )
             zeiger = ctypes.c_wchar_p()
-            ergebnis = ctypes.windll.shell32.SHGetKnownFolderPath(  # type: ignore[attr-defined]
+            ergebnis = ctypes.windll.shell32.SHGetKnownFolderPath(
                 ctypes.byref(folderid), 0, None, ctypes.byref(zeiger)
             )
             if ergebnis == 0 and zeiger.value:
                 pfad = Path(zeiger.value)
-                ctypes.windll.ole32.CoTaskMemFree(zeiger)  # type: ignore[attr-defined]
+                ctypes.windll.ole32.CoTaskMemFree(zeiger)
                 return pfad
         except Exception:  # noqa: BLE001, S110 - hier zaehlt nur die Rueckfallebene
             # Egal warum Windows nicht antwortet: unten steht ein
