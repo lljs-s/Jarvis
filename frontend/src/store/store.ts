@@ -7,7 +7,7 @@
  */
 
 import { create } from "zustand";
-import type { AgentInfo, KnotenInfo } from "../lib/api";
+import type { AgentInfo, KnotenInfo, TypInfo } from "../lib/api";
 import {
   ladeBelegung,
   speichereBelegung,
@@ -57,6 +57,8 @@ interface Zustand {
   wurzel: KnotenInfo | null;
   module: KnotenInfo[];
   baumSetzen: (wurzel: KnotenInfo) => void;
+  typen: TypInfo[];
+  typenSetzen: (typen: TypInfo[]) => void;
   gewaehltesModul: string | null;
   modulWaehlen: (id: string | null) => void;
 
@@ -147,6 +149,8 @@ export const useStore = create<Zustand>((set) => ({
   wurzel: null,
   module: [],
   baumSetzen: (wurzel) => set({ wurzel, module: wurzel.kinder }),
+  typen: [],
+  typenSetzen: (typen) => set({ typen }),
   gewaehltesModul: null,
   modulWaehlen: (id) => set({ gewaehltesModul: id }),
 

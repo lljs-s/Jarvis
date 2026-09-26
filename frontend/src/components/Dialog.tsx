@@ -23,7 +23,8 @@ export function Dialog({ offen, titel, beschreibung, schliessen, children }: Pro
   useEffect(() => {
     if (!offen) return;
     vorherigerFokus.current = document.activeElement;
-    inhalt.current?.focus();
+    // Hat ein Feld im Dialog schon den Fokus (autoFocus), bleibt er dort.
+    if (!inhalt.current?.contains(document.activeElement)) inhalt.current?.focus();
     return () => {
       (vorherigerFokus.current as HTMLElement | null)?.focus?.();
     };

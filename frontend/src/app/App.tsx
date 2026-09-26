@@ -46,16 +46,18 @@ export function App() {
   useEffect(() => {
     const laden = async () => {
       try {
-        const [gesundheit, werte, agents, baum] = await Promise.all([
+        const [gesundheit, werte, agents, baum, typen] = await Promise.all([
           api.health(),
           api.einstellungen(),
           api.agents(),
           api.baum(),
+          api.typen(),
         ]);
         setHealth(gesundheit);
         setEinstellungen(werte);
         useStore.getState().agentsSetzen(agents);
         useStore.getState().baumSetzen(baum);
+        useStore.getState().typenSetzen(typen);
         setStartfehler(null);
       } catch (fehler) {
         setStartfehler(fehler instanceof Error ? fehler.message : String(fehler));

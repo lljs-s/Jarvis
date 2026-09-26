@@ -11,7 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { App } from "./App";
 import { useStore } from "../store/store";
 import { standardBelegung } from "../lib/shortcuts";
-import { knoten, wurzel } from "../test-daten";
+import { knoten, TYPEN, wurzel } from "../test-daten";
 
 const HEALTH = {
   status: "ok",
@@ -101,6 +101,7 @@ function serverAttrappe(url: string) {
     "/api/settings": EINSTELLUNGEN,
     "/api/agents": AGENTS,
     "/api/modules": MODULE,
+    "/api/modules/typen": TYPEN,
   };
   return Promise.resolve({
     ok: url in daten,

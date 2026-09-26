@@ -79,5 +79,8 @@ export function hilfetext(): string {
     "Tastenkuerzel: Strg+K Befehlspalette, Strg+J hierher springen,",
     "Strg+B Seitenleiste, Strg+E Agents, Strg+, Einstellungen, F1 Hilfe.",
     "Alle Kuerzel sind in den Einstellungen aenderbar.",
+    "",
+    "Im Modulbaum: + legt Ordner oder Module an, F2 benennt um,",
+    "Strg+X und dann Strg+V auf einem Bereich verschiebt (oder mit der Maus ziehen).",
   ].join("\n");
 }

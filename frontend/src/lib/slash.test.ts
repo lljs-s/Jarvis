@@ -61,5 +61,7 @@ describe("hilfetext", () => {
   it("nennt die wichtigsten Tastenkuerzel", () => {
     expect(hilfetext()).toContain("Strg+K");
     expect(hilfetext()).toContain("Strg+J");
+    expect(hilfetext()).toContain("F2");
+    expect(hilfetext()).toContain("Strg+V");
   });
 });
