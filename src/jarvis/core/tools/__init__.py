@@ -1,14 +1,16 @@
-"""Werkzeuge, die ein Agent benutzen darf."""
+"""Werkzeuge, die ein Agent benutzen darf.
+
+Die Datei-Werkzeuge stehen bewusst NICHT hier, sondern werden direkt aus
+`.files` geholt: sie haengen vom Modulsystem ab (Datenschutz-Sperre), und
+das Modulsystem braucht `.base` - ein Sammelimport hier wuerde einen Kreis
+bauen.
+"""
 
 from .base import RiskLevel, Tool, ToolResult
-from .files import ListFilesTool, ReadFileTool, SearchTextTool
 from .registry import ToolRegistry
 
 __all__ = [
-    "ListFilesTool",
-    "ReadFileTool",
     "RiskLevel",
-    "SearchTextTool",
     "Tool",
     "ToolRegistry",
     "ToolResult",

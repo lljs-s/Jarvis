@@ -120,6 +120,7 @@ class Baum:
     wurzel: Knoten
     nach_id: dict[str, Knoten] = field(default_factory=dict)
     anzahl: int = 0
+    _nach_ordner: dict[str, Knoten] | None = field(default=None, repr=False)
 
     def finde(self, knoten_id: str) -> Knoten:
         try:
@@ -383,7 +384,9 @@ def wirksame_stufe_unter(baum: Baum, pfad: Path) -> Stufe:
     ohne JSON erben so die Stufe ihres Bereichs; alles ausserhalb von
     bereiche/ hat die Stufe der Wurzel.
     """
-    karte = {os.path.normcase(str(k.ordner)): k for k in baum.alle()}
+    if baum._nach_ordner is None:
+        baum._nach_ordner = {os.path.normcase(str(k.ordner)): k for k in baum.alle()}
+    karte = baum._nach_ordner
     aktuell = pfad
     while True:
         treffer = karte.get(os.path.normcase(str(aktuell)))

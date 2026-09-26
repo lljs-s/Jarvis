@@ -1,9 +1,12 @@
-"""Datei-Werkzeuge fuer Etappe 1 - alle nur lesend (Risiko LOW).
+"""Datei-Werkzeuge - alle nur lesend (Risiko LOW).
 
-Schreiben, Ueberschreiben und Loeschen kommen bewusst erst in Etappe 2,
+Schreiben, Ueberschreiben und Loeschen kommen bewusst erst in Etappe 4,
 zusammen mit Diff-Vorschau und deiner Bestaetigung.
 
-Alle drei Werkzeuge holen ihre Pfade ausschliesslich vom Workspace-Waechter.
+Zwei Tore fuer jede Datei:
+  * Workspace-Waechter: kein Pfad nach draussen
+  * Datenschutz-Sperre: nur Dateien, deren Stufe das Modell sehen darf
+    (Standard: nur "offen" - sicher by default)
 """
 
 from __future__ import annotations
@@ -13,6 +16,8 @@ from typing import Any, ClassVar
 
 from ...errors import ToolError
 from ...workspace import Workspace
+from ..modules.zugriff import DatenschutzFilter
+from ..safety.datenschutz import Stufe
 from .base import RiskLevel, Tool, ToolResult
 
 # Wie viele Treffer bzw. Zeilen geben wir hoechstens zurueck? Ein Agent, der
@@ -58,15 +63,19 @@ class ListFilesTool(Tool):
         "additionalProperties": False,
     }
 
-    def __init__(self, workspace: Workspace) -> None:
+    def __init__(self, workspace: Workspace, datenschutz: DatenschutzFilter | None = None) -> None:
         self.workspace = workspace
+        self.datenschutz = datenschutz or DatenschutzFilter(workspace)
 
     def run(self, subdir: str = ".", **_: Any) -> ToolResult:
-        files = self.workspace.iter_files(subdir)
+        sicht = self.datenschutz.sicht()
+        sicht.pruefe(self.workspace.resolve(subdir))
+        files = sicht.filtere(self.workspace.iter_files(subdir))
+        hinweis = _ausgeblendet(sicht.ausgeblendet)
         if not files:
-            return ToolResult(f"Keine Dateien in '{subdir}'. Der Ordner ist leer.")
+            return ToolResult(f"Keine Dateien in '{subdir}'. Der Ordner ist leer.{hinweis}")
         lines = [f"{self.workspace.label(p)}  ({p.stat().st_size} Bytes)" for p in files]
-        return ToolResult(f"{len(files)} Datei(en):\n" + "\n".join(lines))
+        return ToolResult(f"{len(files)} Datei(en):\n" + "\n".join(lines) + hinweis)
 
 
 class ReadFileTool(Tool):
@@ -90,12 +99,19 @@ class ReadFileTool(Tool):
         "additionalProperties": False,
     }
 
-    def __init__(self, workspace: Workspace, max_bytes: int = 200_000) -> None:
+    def __init__(
+        self,
+        workspace: Workspace,
+        max_bytes: int = 200_000,
+        datenschutz: DatenschutzFilter | None = None,
+    ) -> None:
         self.workspace = workspace
         self.max_bytes = max_bytes
+        self.datenschutz = datenschutz or DatenschutzFilter(workspace)
 
     def run(self, path: str = "", **_: Any) -> ToolResult:
         target = self.workspace.resolve_file(path)
+        self.datenschutz.sicht().pruefe(target)
         text = _read_text(target, self.workspace, self.max_bytes)
         return ToolResult(f"--- {self.workspace.label(target)} ---\n{text}")
 
@@ -122,16 +138,24 @@ class SearchTextTool(Tool):
         "additionalProperties": False,
     }
 
-    def __init__(self, workspace: Workspace, max_bytes: int = 200_000) -> None:
+    def __init__(
+        self,
+        workspace: Workspace,
+        max_bytes: int = 200_000,
+        datenschutz: DatenschutzFilter | None = None,
+    ) -> None:
         self.workspace = workspace
         self.max_bytes = max_bytes
+        self.datenschutz = datenschutz or DatenschutzFilter(workspace)
 
     def run(self, query: str = "", subdir: str = ".", **_: Any) -> ToolResult:
         if not query.strip():
             raise ToolError("Der Suchbegriff darf nicht leer sein.")
+        sicht = self.datenschutz.sicht()
+        sicht.pruefe(self.workspace.resolve(subdir))
         needle = query.lower()
         hits: list[str] = []
-        for path in self.workspace.iter_files(subdir):
+        for path in sicht.filtere(self.workspace.iter_files(subdir)):
             try:
                 text = _read_text(path, self.workspace, self.max_bytes)
             except ToolError:
@@ -142,15 +166,33 @@ class SearchTextTool(Tool):
                     if len(hits) >= _MAX_MATCHES:
                         hits.append(f"[... weitere Treffer ausgelassen, Grenze {_MAX_MATCHES} ...]")
                         return ToolResult("\n".join(hits))
+        hinweis = _ausgeblendet(sicht.ausgeblendet)
         if not hits:
-            return ToolResult(f"Keine Treffer fuer {query!r}.")
-        return ToolResult(f"{len(hits)} Treffer:\n" + "\n".join(hits))
+            return ToolResult(f"Keine Treffer fuer {query!r}.{hinweis}")
+        return ToolResult(f"{len(hits)} Treffer:\n" + "\n".join(hits) + hinweis)
 
 
-def default_tools(workspace: Workspace, max_read_bytes: int = 200_000) -> list[Tool]:
-    """Die Werkzeugausstattung von Etappe 1: nur lesen."""
+def _ausgeblendet(anzahl: int) -> str:
+    """Hinweis fuers Modell - nur die Zahl, keine Namen (auch Namen koennen verraten)."""
+    if not anzahl:
+        return ""
+    return (
+        f"\n[{anzahl} Datei(en) ausgeblendet: ihre Datenschutzstufe ist fuer dieses "
+        "Modell zu hoch.]"
+    )
+
+
+def default_tools(
+    workspace: Workspace, max_read_bytes: int = 200_000, erlaubt: Stufe = Stufe.OFFEN
+) -> list[Tool]:
+    """Die Werkzeugausstattung: nur lesen, mit Datenschutz-Sperre.
+
+    `erlaubt` ist die hoechste Stufe, die das Modell sehen darf. Cloud-Modelle
+    bekommen bis zum Freigabe-Gate (Etappe 4) nur OFFEN.
+    """
+    datenschutz = DatenschutzFilter(workspace, erlaubt)
     return [
-        ListFilesTool(workspace),
-        ReadFileTool(workspace, max_read_bytes),
-        SearchTextTool(workspace, max_read_bytes),
+        ListFilesTool(workspace, datenschutz),
+        ReadFileTool(workspace, max_read_bytes, datenschutz),
+        SearchTextTool(workspace, max_read_bytes, datenschutz),
     ]
