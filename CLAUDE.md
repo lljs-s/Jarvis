@@ -190,12 +190,102 @@ abgelehnt (ab Etappe 4: zur Bestaetigung vorgelegt).
 - **Sicherheitsbremsen.** `max_steps` begrenzt Werkzeugrunden pro Aufgabe,
   `max_read_bytes` die Dateigroesse, ab Etappe 4 Kostenlimit pro Aufgabe
   und pro Tag.
-- **Datenschutzstufe `lokal`:** solche Module duerfen nur von Ollama-Modellen
-  verarbeitet werden - technisch erzwungen. Solange Ollama fehlt, heisst das:
-  **gar kein Modell** darf sie sehen (sicher by default).
+- **Datenschutzstufen** (Details in Abschnitt 5): `offen` < `vertraulich`
+  < `lokal`, im Kern erzwungen, nie nur in der Oberflaeche.
 - **Fehler des Modells sind keine Abstuerze.** Sandbox-Verstoesse und
   Werkzeugfehler gehen als `is_error`-Ergebnis zurueck ans Modell, damit es
   sich korrigieren kann. Nur Konfig- und API-Fehler brechen ab.
+- **Trading (feste Regel):** Der spaetere Modultyp "Trading-Journal" dient
+  nur Analyse und Dokumentation. Agents bekommen **keinen Zugriff auf
+  Broker-Konten** und koennen **keine Orders ausloesen** - es gibt dafuer
+  weder Werkzeug noch Schnittstelle, und ein Modultyp kann keine Werkzeuge
+  anfordern, die der Kern nicht selbst mitbringt.
+
+## 5. Datenmodell: Bereiche und Module (ab Etappe 2)
+
+Alles liegt als normale Ordner und JSON-Dateien im Workspace - keine
+versteckte Datenbank.
+
+```
+<Workspace>\
+  bereiche\                  Wurzel des Modulbaums
+    folder.json              Grundeinstellungen der Wurzel (Stufe: offen)
+    Schule\                  Bereich  = Ordner MIT folder.json
+      folder.json
+      Mathe\                 Modul    = Ordner MIT module.json (ein Blatt)
+        module.json
+        notizen\...          Daten des Moduls
+  .jarvis\                   Systemdaten (spaeter: eigene Typen, Auftraege)
+src\jarvis\core\modules\typen\*.json   eingebaute Modultypen
+```
+
+- **Bereich** = Ordner mit `folder.json`, beliebig tief verschachtelt.
+  **Modul** = "ein Typ an einem Ort": Ordner mit `module.json`, enthaelt
+  nur Daten (keine weiteren Bereiche/Module). Beides zugleich = Fehler.
+  Unterordner eines Bereichs ohne JSON werden ignoriert (mit Warnung).
+- **Modultypen** sind reine Beschreibungen (Widgets, Startordner,
+  Einstellungen, erlaubte Werkzeuge, Mindeststufe) und liegen getrennt von
+  den Modulen. Neuer Typ = neue JSON-Datei, kein Umbau des Kerns. Den Code
+  der Widgets liefert das Widget-Register im Kern.
+- **IDs statt Pfade:** Jeder Bereich und jedes Modul hat eine feste,
+  zufaellige `id` (`ord_...`, `mod_...`). Umbenennen/Verschieben aendert
+  sie nie. Verweise (Auftraege, spaeter Layouts) nutzen nur die `id`.
+  Doppelte ids (z. B. im Explorer kopiert) werden repariert: das zweite
+  Exemplar bekommt eine neue.
+- **Anzeigename = Ordnername**, geprueft vom Waechter.
+
+### 5.1 Datenschutzstufen
+
+| Stufe | Rang | Wer darf die Daten sehen? |
+|---|---|---|
+| `offen` | 0 | alle Modelle, auch Cloud |
+| `vertraulich` | 1 | Cloud nur nach Freigabe pro Aufgabe. Die Freigabe zeigt **konkret**, was hinausgeht (Modul, Dateien, Umfang), nicht nur "Cloud ja/nein" (Etappe 4) |
+| `lokal` | 2 | nur Ollama; solange Ollama fehlt: **kein Modell** |
+
+Bis das Freigabe-Gate existiert, sehen Cloud-Modelle **nur `offen`** - die
+Lese-Werkzeuge verweigern alles Strengere.
+
+- **Vererbung:** Symbol, Farbe, Standard-Agents, Layout: der naechste
+  gesetzte Wert gewinnt (`null`/fehlend = erben). **Datenschutz: immer das
+  Strengste** aus Bereichskette, eigener Stufe und Mindeststufe des Typs.
+  Lockern nach unten ist damit unmoeglich; der Kern verweigert ausserdem das
+  Speichern einer Stufe unter der geerbten.
+- **Verschieben:** Wird ein Modul/Bereich in einen lockereren Bereich
+  verschoben, schreibt der Kern die bisherige Stufe fest (`datenschutz`)
+  und dazu `datenschutz_grund` (art, text, datum), z. B. "festgeschrieben
+  beim Verschieben aus Unternehmen am 26.09.2026". Die Oberflaeche zeigt
+  den Grund an und warnt. In einen strengeren Bereich: die Stufe steigt von
+  selbst. Bewusstes Senken ist moeglich bis zur geerbten Stufe; wird dadurch
+  irgendetwas lockerer, braucht es eine ausdrueckliche Bestaetigung.
+- **Im Zweifel `lokal`:** Kaputte oder unlesbare JSON-Dateien, beide Dateien
+  in einem Ordner, fehlendes oder unbekanntes `schema` - der Knoten wird als
+  fehlerhaft angezeigt und zaehlt als `lokal` (Kinder erben das).
+- **Schreibsperre:** `folder.json`, `module.json` und alles unter `.jarvis\`
+  duerfen Werkzeuge (also Agents) nie schreiben - nur der Modul-Dienst im
+  Kern. Sonst koennte ein Agent seine eigene Datenschutzstufe senken.
+
+### 5.2 Schema-Versionen
+
+Jede JSON-Datei traegt `"schema": <Zahl>` (derzeit 1).
+- **Hoehere Nummer als bekannt:** nicht raten. Knoten = fehlerhaft, zaehlt
+  als `lokal`, der Nutzer bekommt eine klare Meldung ("Datei ist neuer als
+  dieses Jarvis"). Jarvis **schreibt eine solche Datei nie** (sonst gingen
+  Felder der neueren Version verloren).
+- **Fehlende oder ungueltige Nummer:** ebenso fehlerhaft und `lokal`.
+- **Aeltere Nummer:** wird beim Lesen umgewandelt, sobald es eine gibt
+  (Migration im Kern, mit Test).
+- Unbekannte Zusatzfelder derselben Version bleiben beim Schreiben erhalten.
+
+### 5.3 Abteilungen und Auftraege (Datenmodell jetzt, Umsetzung Etappe 6)
+
+Ein Modul mit `"abteilung": {"beschreibung", "auftragsarten"}` nimmt
+Auftraege an. Ein Auftrag liegt in `.jarvis\auftraege\<id>.json` mit `von`,
+`an` (ids), `stufe`, `status`, `auftrag`, `ergebnis`.
+**Feste Regel: Daten fliessen nie von einer hoeheren in eine niedrigere
+Stufe.** Das Etikett `stufe` eines Auftrags ist das Strengste aller
+eingeflossenen Daten; Daten duerfen nur zu Empfaengern mit mindestens dieser
+Stufe. Eine Abteilung arbeitet fuer einen strengeren Auftraggeber unter
+dessen Regeln und behaelt nichts vom Auftrag bei sich.
 
 ## 4. Konventionen
 
@@ -259,7 +349,7 @@ abgelehnt (ab Etappe 4: zur Bestaetigung vorgelegt).
   (`origin`, https://github.com/lljs-s/Jarvis) - die Sicherung ausserhalb
   des PCs. Nie force-pushen.
 
-## 5. Stand (nach Session 3)
+## 6. Stand (nach Session 3)
 
 Fertig: **Etappe 0** (Setup) und **Etappe 1** (Grundgeruest der Oberflaeche).
 
@@ -277,7 +367,7 @@ Details und naechste Schritte: `ROADMAP.md`.
 (Gemini), Approval-Gate mit Diff, Logbuch, Kostenzaehler, Opus-Eskalation,
 Ollama, echte Agents, andockbare Panels, Tauri-Paketierung.
 
-## 6. Befehle (PowerShell)
+## 7. Befehle (PowerShell)
 
 ```powershell
 # Einmalig einrichten

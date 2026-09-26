@@ -53,27 +53,34 @@ es ist kein Modell angeschlossen.
 
 ## Etappe 2 - Modulsystem [ ]
 
-- [ ] `core/modules/`: `module.json` lesen und schreiben (Name, Symbol,
-      Widgets, Berechtigungen, Datenschutzstufe)
-- [ ] Modulbaum aus den echten Ordnern unter `<Workspace>/modules/`,
-      beliebig tiefe Unterordner
-- [ ] Ein Demo-Modul mit Notizen, Dateiliste und Aufgabenliste - zugleich
-      Vorlage fuer neue Module
-- [ ] Widget-Register im Kern (deklarativ: `module.json` nennt Widgets,
-      Code dafuer liefert der Kern) - Schnittstelle so entworfen, dass
-      spaeter externe Widget-Pakete andocken koennen
-- [ ] "+" legt Module und Ordner an, Umbenennen, Verschieben per Drag & Drop
-- [ ] Jeder Modulpfad laeuft durch den Waechter
-- [ ] Tests: Baum aus echten Ordnern, kaputte `module.json` bricht nichts,
-      kein Modul kann aus dem Workspace zeigen
+Datenmodell: siehe `CLAUDE.md`, Abschnitt 5.
 
-## Etappe 3 - Erste KI-Anbindung: Gemini [ ]
+- [ ] Doku: Datenmodell, Schema-Versionen, Trading-Regel
+- [ ] Kern: Datenschutzstufen `offen` < `vertraulich` < `lokal`,
+      `folder.json` / `module.json` / Typ-Definitionen lesen,
+      Modulbaum aus `<Workspace>\bereiche\` mit Vererbung
+- [ ] Kern: Bereiche und Module anlegen, umbenennen, verschieben
+      (mit `datenschutz_grund`), Stufe setzen und bewusst senken
+- [ ] Schranken: Werkzeuge duerfen `folder.json`/`module.json`/`.jarvis`
+      nie schreiben; Lese-Werkzeuge zeigen Cloud-Modellen nur `offen`
+- [ ] Server: REST-Endpunkte fuer Baum, Typen und alle Aenderungen
+- [ ] Demo "Beispiel" (Repo + echter Workspace), im echten Workspace
+      zusaetzlich "Unternehmen" und "Trading" als `vertraulich`
+- [ ] Oberflaeche: "+" (Neuer Ordner / Neues Modul mit Typauswahl), F2,
+      Drag & Drop, Verschieben per Tastatur, Datenschutz mit Herkunft
+- [ ] Start-Typen: Notizen, Recherche, Aufgaben, Dateien
+- [ ] Tests fuer jede Schranke
 
-- [ ] `core/models/gemini_model.py` hinter der bestehenden Adapter-Schicht
-- [ ] Chat mit echtem Modell, Antwort Wort fuer Wort ueber den WebSocket
+## Etappe 3 - Erste KI-Anbindung [ ]
+
+- [ ] Start mit dem **vorhandenen Anthropic-Adapter**: Chat in der
+      Oberflaeche mit echtem Modell, Antwort Wort fuer Wort ueber den WebSocket
+- [ ] `core/models/gemini_model.py` als **zweiter Adapter** hinter derselben
+      Adapter-Schicht
+- [ ] Welches Modell die zentrale Rolle (Jarvis) uebernimmt, ist eine
+      **Einstellung**, nie im Code
 - [ ] Werkzeugaufrufe sichtbar im Chat (welches Werkzeug, welche Datei)
-- [ ] Modellwahl in den Einstellungen, nie im Code
-- [ ] Tests: Adapter mit Attrappe, gleiche Schleife wie beim Anthropic-Adapter
+- [ ] Tests: beide Adapter mit Attrappe, gleiche Schleife
 
 ## Etappe 4 - Sicherheit: Freigabe, Diff, Logbuch, Kosten [ ]
 
@@ -81,6 +88,8 @@ es ist kein Modell angeschlossen.
 - [ ] Schreib-Werkzeuge: `write_file` (neu = MEDIUM), `edit_file`,
       `delete_file` (ueberschreiben/loeschen = HIGH)
 - [ ] Diff-Vorschau vor jeder Aenderung, Freigabe-Dialog in der Oberflaeche
+- [ ] Freigabe fuer `vertraulich`: zeigt konkret, welche Daten hinausgehen
+      (Modul, Dateien, Umfang) - nicht nur "Cloud ja/nein"
 - [ ] Automatisches Backup vor Ueberschreiben
 - [ ] `core/journal/`: SQLite + lesbare JSONL-Datei (Zeit, Agent, Modell,
       Aktion, Dateien, Ergebnis, Kosten), durchsuchbar in der Oberflaeche
@@ -107,6 +116,8 @@ es ist kein Modell angeschlossen.
 - [ ] "x" loescht mit Bestaetigung
 - [ ] `core/orchestrator/`: Aufgabe zerlegen, an Agents verteilen,
       Reviewer-Agent prueft das Ergebnis vor der Vorlage
+- [ ] Abteilungen: Module nehmen Auftraege aus anderen Modulen an
+      (`.jarvis\auftraege\`), Stufen-Etikett, nie von hoeher nach niedriger
 - [ ] Live-Status je Agent in der Oberflaeche
 - [ ] ( ) LangGraph neu bewerten, falls der Graph wirklich komplex wird
 - [ ] Tests: Zerlegung, Weiterreichen, Reviewer lehnt ab, Berechtigungen
@@ -131,4 +142,8 @@ es ist kein Modell angeschlossen.
 - ( ) Gedaechtnis ueber Sessions hinweg (frueher Etappe 5)
 - ( ) Bildmodelle (Midjourney)
 - ( ) Echte Code-Plugins fuer Module
+- ( ) Modultyp **Trading-Journal** - nur Analyse und Dokumentation.
+      Agents erhalten **keinen Zugriff auf Broker-Konten** und koennen
+      **keine Orders ausloesen** (feste Regel, siehe `CLAUDE.md` 3.6)
+- ( ) Modultyp Tabellen
 - ( ) Synchronisierung zwischen Geraeten
