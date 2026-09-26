@@ -375,8 +375,9 @@ der Nutzer sie selbst ausprobiert hat.
   Waechter-Tests plus 3 neue (Junction im Baum, Junction nach .jarvis,
   8.3-Kurzname). Der 8.3-Test ueberspringt sich auf D:, weil dort keine
   Kurznamen erzeugt werden (`fsutil 8dot3name query D:` -> deaktiviert) -
-  der Umweg existiert dort also nicht. Auf C: waere er aktiv; dort wurde
-  bewusst nicht getestet (Speicherplatz, Absprache).
+  der Umweg existiert dort also nicht. Auf C: (Kurznamen aktiv) wurde er
+  am 26.09.2026 einmal mit `--basetemp` auf C: ausgefuehrt: **bestanden**,
+  die Sperre erkennt den Kurznamen. Testordner danach geloescht.
 - Gearbeitet wird ab Session 4 auf `main`
 - **Commit-Nachrichten** unter PowerShell 5.1 ueber eine Datei
   (`git commit -F datei`): Anfuehrungszeichen in `-m "..."` zerlegt
