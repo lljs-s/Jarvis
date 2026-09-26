@@ -228,17 +228,19 @@ abgelehnt (ab Etappe 4: zur Bestaetigung vorgelegt).
   damit sie gruen sind.
 - **Stand der Windows-Tests (Session 4, 2026-09-26, Windows 10 Pro 19045,
   Python 3.14, NTFS auf D:):**
-  - echt bestaetigt: `test_gross_kleinschreibung_findet_dieselbe_datei`,
+  **Alle fuenf echt bestaetigt, 67/67 in `test_workspace_windows.py`,
+  175/175 Python-Tests ohne Skip.**
+  - `test_gross_kleinschreibung_findet_dieselbe_datei`,
     `test_verschiedene_laufwerke_sind_nie_enthalten`,
     `test_junction_nach_draussen_wird_erkannt`,
     `test_junction_innerhalb_bleibt_erlaubt`
-  - **noch NICHT bestaetigt:** `test_dateisymlink_nach_draussen_wird_erkannt`
-    sowie die zwei Symlink-Tests in `test_workspace.py` - uebersprungen mit
-    `WinError 1314` (dem Benutzer fehlt das Recht, Symlinks anzulegen; der
-    Registry-Wert `AllowDevelopmentWithoutDevLicense` fuer den
-    Entwicklermodus war nicht gesetzt). Kein Codefehler gefunden. Sobald
-    der Entwicklermodus wirklich aktiv ist: erneut laufen lassen und hier
-    nachtragen.
+  - `test_dateisymlink_nach_draussen_wird_erkannt` sowie die zwei
+    Symlink-Tests in `test_workspace.py`: erst uebersprungen
+    (`WinError 1314`, Entwicklermodus war fuer Windows nicht aktiv), nach
+    Aus-/Einschalten und Neustart
+    (`AllowDevelopmentWithoutDevLicense = 1`) bestanden. Kein Codefehler.
+  - Wird einer dieser Tests je wieder uebersprungen: das ist KEIN Gruen.
+    Dem Nutzer klar melden (Entwicklermodus pruefen).
 - **Speicherplatz:** C: ist fast voll. Projekt, `.venv`, `node_modules`,
   Workspace (`D:\Jarvis-Workspace`), Caches (`D:\Caches`) und TEMP
   (`D:\Temp`) liegen auf D:. Neues, das Platz braucht, ebenfalls nach D:.
@@ -252,7 +254,10 @@ abgelehnt (ab Etappe 4: zur Bestaetigung vorgelegt).
   Umgehen, kein stilles Weglassen).
 - **Tests zu jeder Etappe.** Neue Faehigkeit ohne Test = nicht fertig.
   Tests laufen ohne Netz und ohne API-Kosten (FakeModel bzw. Attrappen).
-- **Commits** klein und sprechend, auf dem vereinbarten Branch.
+- **Commits** klein und sprechend, auf dem vereinbarten Branch (`main`).
+  **Nach jedem abgeschlossenen Teilschritt nach GitHub pushen**
+  (`origin`, https://github.com/lljs-s/Jarvis) - die Sicherung ausserhalb
+  des PCs. Nie force-pushen.
 
 ## 5. Stand (nach Session 3)
 
@@ -262,8 +267,9 @@ Fertig: **Etappe 0** (Setup) und **Etappe 1** (Grundgeruest der Oberflaeche).
 - lokaler Server mit Token-, Origin- und Host-Pruefung
 - React-Oberflaeche: drei Bereiche, Befehlspalette, konfigurierbare
   Tastenkuerzel, Slash-Befehle, hell/dunkel
-- **236 Tests** (175 Python + 61 Frontend), davon 5 nur unter Windows
-- Ein Stand: `main` und der Arbeitsbranch zeigen auf denselben Commit
+- **236 Tests** (175 Python + 61 Frontend), davon 5 nur unter Windows -
+  seit Session 4 alle auf echtem Windows bestaetigt
+- Gearbeitet wird ab Session 4 auf `main`
 
 Details und naechste Schritte: `ROADMAP.md`.
 
