@@ -281,7 +281,7 @@ class ModulDienst:
                 "Bitte zuerst reparieren."
             )
         if knoten.ist_wurzel:
-            self._sichere_wurzel()
+            self.sichere_wurzel()
         return knoten
 
     def _aenderbar(self, baum: Baum, knoten_id: str) -> Knoten:
@@ -292,10 +292,10 @@ class ModulDienst:
                 "Jarvis aendert fehlerhafte Eintraege nicht - bitte zuerst die Datei reparieren."
             )
         if knoten.ist_wurzel:
-            self._sichere_wurzel()
+            self.sichere_wurzel()
         return knoten
 
-    def _sichere_wurzel(self) -> None:
+    def sichere_wurzel(self) -> None:
         """Legt bereiche/ mit folder.json an, falls es noch fehlt."""
         ordner = self.workspace.resolve(BEREICHE_ORDNER)
         ordner.mkdir(exist_ok=True)

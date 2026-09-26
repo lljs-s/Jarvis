@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "id": "ord_363f119b",
+  "beschreibung": "Strenger als der Bereich darueber, andere Farbe.",
+  "datenschutz": "vertraulich",
+  "datenschutz_grund": {
+    "art": "gesetzt",
+    "text": "im Beispiel festgelegt am 26.09.2026",
+    "datum": "2026-09-26"
+  },
+  "farbe": "rot"
+}

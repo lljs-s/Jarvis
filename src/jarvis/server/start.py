@@ -55,12 +55,28 @@ def pruefe_port_frei(host: str, port: int) -> None:
             ) from exc
 
 
+def richte_workspace_ein(settings: Settings) -> list[str]:
+    """Beim allerersten Start: Wurzel, Beispiel und die vertraulichen Startbereiche.
+
+    Existiert <Workspace>/bereiche schon, passiert nichts - geloeschte
+    Bereiche kommen also nicht ungefragt zurueck.
+    """
+    from ..core.modules.demo import erstbefuellung
+    from ..core.modules.typen import eingebaute_typen
+    from ..workspace import Workspace
+
+    return erstbefuellung(Workspace.open(settings.workspace_path), eingebaute_typen())
+
+
 def serve(settings: Settings | None = None, token: str | None = None) -> None:
     """Startet nur den Server (ohne Oberflaeche)."""
     import uvicorn
 
     settings = settings or load_settings()
     pruefe_port_frei(settings.host, settings.port)
+    angelegt = richte_workspace_ein(settings)
+    if angelegt:
+        print(f"Workspace eingerichtet - neue Bereiche: {', '.join(angelegt)}")  # noqa: T201
     token = token or create_session_token(settings)
     # Das Token an die App weiterreichen, ohne es auf die Kommandozeile zu
     # schreiben - dort koennten es andere Prozesse mitlesen.
