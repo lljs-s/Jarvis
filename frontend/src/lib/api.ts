@@ -51,12 +51,51 @@ export interface AgentInfo {
   notiz: string;
 }
 
-export interface ModulInfo {
+export type Stufe = "offen" | "vertraulich" | "lokal";
+
+export interface GrundInfo {
+  art: string;
+  text: string;
+  datum: string;
+}
+
+/** Ein Bereich oder Modul - mit den wirksamen (vererbten) Werten. */
+export interface KnotenInfo {
+  id: string;
+  art: "bereich" | "modul";
+  name: string;
+  pfad: string;
+  beschreibung: string;
+  symbol: string;
+  farbe: string;
+  datenschutz: Stufe;
+  datenschutz_eigen: Stufe | null;
+  datenschutz_mindest: Stufe;
+  datenschutz_herkunft: string;
+  datenschutz_grund: GrundInfo | null;
+  typ: string | null;
+  typ_name: string | null;
+  abteilung: boolean;
+  fehler: string | null;
+  warnungen: string[];
+  kinder: KnotenInfo[];
+}
+
+export interface TypInfo {
   id: string;
   name: string;
+  beschreibung: string;
   symbol: string;
-  typ: "ordner" | "modul";
-  kinder: ModulInfo[];
+  mindest_datenschutz: Stufe;
+}
+
+export interface AenderungsAntwort {
+  baum: KnotenInfo;
+  knoten_id: string | null;
+  warnungen: string[];
+  hinweise: string[];
+  braucht_bestaetigung: boolean;
+  betroffene: string[];
 }
 
 export class ApiFehler extends Error {
@@ -68,23 +107,56 @@ export class ApiFehler extends Error {
   }
 }
 
+async function pruefe<T>(antwort: Response): Promise<T> {
+  if (!antwort.ok) {
+    let grund = `Server antwortete mit ${antwort.status}`;
+    if (antwort.status === 401) {
+      grund =
+        "Der Sitzungs-Token fehlt oder ist abgelaufen. Starte Jarvis neu und benutze den angezeigten Link.";
+    } else if (antwort.status === 400) {
+      // Abgelehnte Aenderung: der Server schickt einen Klartext mit.
+      try {
+        const daten = (await antwort.json()) as { fehler?: string };
+        if (daten.fehler) grund = daten.fehler;
+      } catch {
+        /* dann bleibt die allgemeine Meldung */
+      }
+    }
+    throw new ApiFehler(grund, antwort.status);
+  }
+  return (await antwort.json()) as T;
+}
+
 async function hole<T>(pfad: string): Promise<T> {
   const antwort = await fetch(pfad, {
     headers: { "X-Jarvis-Token": holeToken() ?? "" },
   });
-  if (!antwort.ok) {
-    const grund =
-      antwort.status === 401
-        ? "Der Sitzungs-Token fehlt oder ist abgelaufen. Starte Jarvis neu und benutze den angezeigten Link."
-        : `Server antwortete mit ${antwort.status}`;
-    throw new ApiFehler(grund, antwort.status);
-  }
-  return (await antwort.json()) as T;
+  return pruefe<T>(antwort);
+}
+
+async function sende<T>(pfad: string, daten: object): Promise<T> {
+  const antwort = await fetch(pfad, {
+    method: "POST",
+    headers: { "X-Jarvis-Token": holeToken() ?? "", "Content-Type": "application/json" },
+    body: JSON.stringify(daten),
+  });
+  return pruefe<T>(antwort);
 }
 
 export const api = {
   health: () => hole<HealthInfo>("/api/health"),
   einstellungen: () => hole<EinstellungenInfo>("/api/settings"),
   agents: () => hole<AgentInfo[]>("/api/agents"),
-  module: () => hole<ModulInfo[]>("/api/modules"),
+  baum: () => hole<KnotenInfo>("/api/modules"),
+  typen: () => hole<TypInfo[]>("/api/modules/typen"),
+  ordnerAnlegen: (eltern_id: string, name: string) =>
+    sende<AenderungsAntwort>("/api/modules/ordner", { eltern_id, name }),
+  modulAnlegen: (eltern_id: string, name: string, typ: string) =>
+    sende<AenderungsAntwort>("/api/modules/modul", { eltern_id, name, typ }),
+  umbenennen: (id: string, name: string) =>
+    sende<AenderungsAntwort>("/api/modules/umbenennen", { id, name }),
+  verschieben: (id: string, ziel_id: string) =>
+    sende<AenderungsAntwort>("/api/modules/verschieben", { id, ziel_id }),
+  datenschutzSetzen: (id: string, stufe: Stufe | null, bestaetigt = false) =>
+    sende<AenderungsAntwort>("/api/modules/datenschutz", { id, stufe, bestaetigt }),
 };

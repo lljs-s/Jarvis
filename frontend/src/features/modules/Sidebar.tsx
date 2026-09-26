@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { Panel } from "../../components/Panel";
 import { useStore, neueId } from "../../store/store";
-import type { ModulInfo } from "../../lib/api";
+import type { KnotenInfo } from "../../lib/api";
 
 export function Sidebar() {
   const module = useStore((s) => s.module);
@@ -38,7 +38,7 @@ export function Sidebar() {
     });
   };
 
-  const zeichne = (eintrag: ModulInfo, ebene: number): React.ReactNode => {
+  const zeichne = (eintrag: KnotenInfo, ebene: number): React.ReactNode => {
     const hatKinder = eintrag.kinder.length > 0;
     const istOffen = offene.has(eintrag.id);
     const istGewaehlt = gewaehlt === eintrag.id;
@@ -77,7 +77,7 @@ export function Sidebar() {
           <span aria-hidden className="w-3 text-[10px] text-[var(--color-text-leise)]">
             {hatKinder ? (istOffen ? "▾" : "▸") : ""}
           </span>
-          <span aria-hidden>{eintrag.typ === "ordner" ? "📁" : "📄"}</span>
+          <span aria-hidden>{eintrag.art === "bereich" ? "📁" : "📄"}</span>
           <span className="truncate">{eintrag.name}</span>
         </div>
         {hatKinder && istOffen && (

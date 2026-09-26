@@ -11,6 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { App } from "./App";
 import { useStore } from "../store/store";
 import { standardBelegung } from "../lib/shortcuts";
+import { knoten, wurzel } from "../test-daten";
 
 const HEALTH = {
   status: "ok",
@@ -50,15 +51,16 @@ const AGENTS = [
   },
 ];
 
-const MODULE = [
-  {
-    id: "privat",
+const MODULE = wurzel([
+  knoten({
+    id: "ord_privat01",
     name: "Privat",
-    symbol: "ordner",
-    typ: "ordner",
-    kinder: [{ id: "privat/mathe", name: "Mathe", symbol: "modul", typ: "modul", kinder: [] }],
-  },
-];
+    kinder: [
+      knoten({ id: "mod_mathe001", name: "Mathe", pfad: "Privat/Mathe", art: "modul" }),
+    ],
+  }),
+  knoten({ id: "ord_schule01", name: "Schule" }),
+]);
 
 /** Eine WebSocket-Attrappe, die sich wie der echte Server verhaelt. */
 class FakeWebSocket {
@@ -115,6 +117,7 @@ beforeEach(() => {
   useStore.setState({
     nachrichten: [],
     agents: [],
+    wurzel: null,
     module: [],
     paletteOffen: false,
     einstellungenOffen: false,

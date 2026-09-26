@@ -23,7 +23,7 @@ def health(request: Request) -> HealthInfo:
     workspace = settings.workspace_path
     return HealthInfo(
         version=__version__,
-        etappe="1 - Grundgeruest der Oberflaeche (noch ohne KI)",
+        etappe="2 - Modulsystem (noch ohne KI)",
         workspace=str(workspace),
         workspace_existiert=workspace.is_dir(),
         modell=settings.model,

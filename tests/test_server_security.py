@@ -7,6 +7,8 @@ antwortet. Diese Tests spielen genau die Angriffe durch, die es real gibt.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
@@ -28,8 +30,10 @@ WS_KOPF = {"Origin": EIGENE_ORIGIN, "Host": "127.0.0.1:8765"}
 
 
 @pytest.fixture()
-def settings() -> Settings:
-    return Settings(_env_file=None)  # type: ignore[call-arg]
+def settings(tmp_path: Path) -> Settings:
+    # Eigener Wegwerf-Workspace: ohne .env laege er sonst in Dokumente (C:),
+    # und /api/modules liest bzw. legt dort echte Ordner an.
+    return Settings(_env_file=None, JARVIS_WORKSPACE_DIR=str(tmp_path / "ws"))  # type: ignore[call-arg]
 
 
 @pytest.fixture()

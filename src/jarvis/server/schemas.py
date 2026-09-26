@@ -66,14 +66,95 @@ class AgentInfo(BaseModel):
     notiz: str = ""
 
 
-class ModulInfo(BaseModel):
-    """Ein Modul in der Seitenleiste (ab Etappe 2 aus module.json)."""
+StufeName = Literal["offen", "vertraulich", "lokal"]
+
+
+class GrundInfo(BaseModel):
+    """Warum eine Datenschutzstufe festgeschrieben wurde."""
+
+    art: str
+    text: str
+    datum: str
+
+
+class KnotenInfo(BaseModel):
+    """Ein Bereich oder Modul im Baum - mit den wirksamen (vererbten) Werten.
+
+    `pfad` ist relativ zu bereiche/ - absolute Pfade des Rechners bekommt
+    die Oberflaeche nie zu sehen.
+    """
+
+    id: str
+    art: Literal["bereich", "modul"]
+    name: str
+    pfad: str
+    beschreibung: str
+    symbol: str
+    farbe: str
+    datenschutz: StufeName
+    datenschutz_eigen: StufeName | None
+    datenschutz_mindest: StufeName
+    datenschutz_herkunft: str
+    datenschutz_grund: GrundInfo | None
+    typ: str | None
+    typ_name: str | None
+    abteilung: bool
+    fehler: str | None
+    warnungen: list[str]
+    kinder: list[KnotenInfo] = Field(default_factory=list)
+
+
+class TypInfo(BaseModel):
+    """Ein Modultyp fuer die Auswahl beim Anlegen."""
 
     id: str
     name: str
+    beschreibung: str
     symbol: str
-    typ: Literal["ordner", "modul"]
-    kinder: list[ModulInfo] = Field(default_factory=list)
+    mindest_datenschutz: StufeName
+
+
+# Eingaben: Laengen begrenzen, damit niemand Megabytes an Namen schickt.
+_Id = Field(min_length=1, max_length=64)
+_Name = Field(min_length=1, max_length=80)
+
+
+class OrdnerAnlegen(BaseModel):
+    eltern_id: str = _Id
+    name: str = _Name
+
+
+class ModulAnlegen(BaseModel):
+    eltern_id: str = _Id
+    name: str = _Name
+    typ: str = Field(min_length=1, max_length=40)
+
+
+class Umbenennen(BaseModel):
+    id: str = _Id
+    name: str = _Name
+
+
+class Verschieben(BaseModel):
+    id: str = _Id
+    ziel_id: str = _Id
+
+
+class DatenschutzSetzen(BaseModel):
+    id: str = _Id
+    stufe: StufeName | None
+    bestaetigt: bool = False
+
+
+class AenderungsAntwort(BaseModel):
+    """Antwort auf jede Aenderung: der neue Baum plus alles, was zu sagen ist."""
+
+    baum: KnotenInfo
+    knoten_id: str | None = None
+    warnungen: list[str] = Field(default_factory=list)
+    hinweise: list[str] = Field(default_factory=list)
+    braucht_bestaetigung: bool = False
+    betroffene: list[str] = Field(default_factory=list)
 
 
 class ChatAnfrage(BaseModel):
