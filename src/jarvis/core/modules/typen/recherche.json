@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "recherche",
+  "version": 1,
+  "name": "Recherche",
+  "beschreibung": "Forschungsfrage, Quellen und Ergebnisse an einem Ort",
+  "symbol": "lupe",
+  "widgets": [
+    { "widget": "quellenliste", "platz": "seite" },
+    { "widget": "markdown_editor", "platz": "haupt" }
+  ],
+  "startordner": ["quellen", "ergebnisse"],
+  "startdateien": [
+    { "pfad": "frage.md", "inhalt": "# Forschungsfrage\n\nWas genau willst du herausfinden?\n" }
+  ],
+  "einstellungen": {
+    "zitierstil": { "art": "auswahl", "werte": ["kurz", "ausfuehrlich"], "standard": "kurz" }
+  },
+  "werkzeuge": ["list_files", "read_file", "search_text"],
+  "mindest_datenschutz": "offen"
+}

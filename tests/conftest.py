@@ -2,11 +2,42 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from jarvis.core.modules.formate import neue_id
 from jarvis.workspace import Workspace
+
+_OHNE = object()
+
+
+def lege_bereich(ordner: Path, id: Any = _OHNE, **felder: Any) -> Path:
+    """Legt einen Bereich (Ordner mit folder.json) an. `id=None` laesst sie weg."""
+    ordner.mkdir(parents=True, exist_ok=True)
+    daten: dict[str, Any] = {"schema": 1}
+    if id is _OHNE:
+        daten["id"] = neue_id("ord")
+    elif id is not None:
+        daten["id"] = id
+    daten.update(felder)
+    (ordner / "folder.json").write_text(json.dumps(daten), encoding="utf-8")
+    return ordner
+
+
+def lege_modul(ordner: Path, typ: str = "notizen", id: Any = _OHNE, **felder: Any) -> Path:
+    """Legt ein Modul (Ordner mit module.json) an."""
+    ordner.mkdir(parents=True, exist_ok=True)
+    daten: dict[str, Any] = {"schema": 1, "typ": typ}
+    if id is _OHNE:
+        daten["id"] = neue_id("mod")
+    elif id is not None:
+        daten["id"] = id
+    daten.update(felder)
+    (ordner / "module.json").write_text(json.dumps(daten), encoding="utf-8")
+    return ordner
 
 
 @pytest.fixture()

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "id": "dateien",
+  "version": 1,
+  "name": "Dateien",
+  "beschreibung": "Eine Ablage fuer beliebige Dateien mit Vorschau",
+  "symbol": "ablage",
+  "widgets": [
+    { "widget": "dateiliste", "platz": "seite" },
+    { "widget": "dateivorschau", "platz": "haupt" }
+  ],
+  "startordner": ["ablage"],
+  "startdateien": [],
+  "einstellungen": {},
+  "werkzeuge": ["list_files", "read_file", "search_text"],
+  "mindest_datenschutz": "offen"
+}

@@ -26,6 +26,13 @@ class RiskLevel(IntEnum):
         return self.name
 
 
+# Alle Werkzeuge, die der Kern mitbringt. Ein Modultyp darf nur aus dieser
+# Liste waehlen - er kann sich kein Werkzeug "wuenschen", das es nicht gibt
+# (etwa einen Broker-Zugang). Ein Test prueft, dass die Liste zu den
+# tatsaechlich gebauten Werkzeugen passt.
+KERN_WERKZEUGE = frozenset({"list_files", "read_file", "search_text"})
+
+
 @dataclass(frozen=True)
 class ToolResult:
     """Ergebnis eines Werkzeugs - genau das sieht das Modell."""

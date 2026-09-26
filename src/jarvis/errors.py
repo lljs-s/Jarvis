@@ -20,6 +20,21 @@ class WorkspaceViolation(JarvisError):
     """Ein Pfad zeigt aus dem Workspace heraus. Wird immer hart abgelehnt."""
 
 
+class DatenschutzVerstoss(WorkspaceViolation):
+    """Daten wuerden zu jemandem fliessen, der sie nicht sehen darf.
+
+    Unterklasse von WorkspaceViolation: fuer den Agenten ist es dasselbe
+    wie ein Ausbruchsversuch - hart verboten, aber kein Absturz.
+    """
+
+
+class ModulFehler(JarvisError):
+    """Eine Aenderung am Modulbaum ist nicht moeglich (Name belegt, Ziel ungueltig ...).
+
+    Die Meldung ist fuer den Nutzer gedacht und darf angezeigt werden.
+    """
+
+
 class ToolError(JarvisError):
     """Ein Werkzeug konnte seine Aufgabe nicht erledigen (z. B. Datei fehlt).
 

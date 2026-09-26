@@ -25,6 +25,10 @@ jarvis = "jarvis.cli:app"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+# Die eingebauten Modultypen gehoeren zum Programm.
+"jarvis.core.modules" = ["typen/*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]

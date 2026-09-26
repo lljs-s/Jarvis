@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "notizen",
+  "version": 1,
+  "name": "Notizen",
+  "beschreibung": "Markdown-Notizen mit Suche",
+  "symbol": "notizblock",
+  "widgets": [
+    { "widget": "notizliste", "platz": "seite" },
+    { "widget": "markdown_editor", "platz": "haupt" }
+  ],
+  "startordner": ["notizen"],
+  "startdateien": [
+    { "pfad": "notizen/willkommen.md", "inhalt": "# Deine erste Notiz\n\nSchreib hier los.\n" }
+  ],
+  "einstellungen": {
+    "sortierung": { "art": "auswahl", "werte": ["name", "datum"], "standard": "datum" }
+  },
+  "werkzeuge": ["list_files", "read_file", "search_text"],
+  "mindest_datenschutz": "offen"
+}

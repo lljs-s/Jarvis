@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "id": "aufgaben",
+  "version": 1,
+  "name": "Aufgaben",
+  "beschreibung": "Eine Aufgabenliste zum Abhaken",
+  "symbol": "haken",
+  "widgets": [
+    { "widget": "aufgabenliste", "platz": "haupt" }
+  ],
+  "startordner": [],
+  "startdateien": [
+    { "pfad": "aufgaben.md", "inhalt": "# Aufgaben\n\n- [ ] Erste Aufgabe\n" }
+  ],
+  "einstellungen": {
+    "erledigte_zeigen": { "art": "schalter", "standard": true }
+  },
+  "werkzeuge": ["list_files", "read_file", "search_text"],
+  "mindest_datenschutz": "offen"
+}
